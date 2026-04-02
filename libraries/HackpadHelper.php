@@ -166,6 +166,20 @@ class HackpadHelper
     }
 
     /**
+     * Check if an email address belongs to a member of the given domain.
+     * Used for access control on private domains.
+     */
+    public static function isEmailDomainMember(string $email, int $domainId): bool
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT id FROM pro_accounts WHERE email = ? AND domainId = ? AND isDeleted = 0 LIMIT 1'
+        );
+        $stmt->execute([strtolower(trim($email)), $domainId]);
+        return (bool) $stmt->fetch();
+    }
+
+    /**
      * Look up a user by email across all domains.
      * Returns the first matching account or null.
      */
