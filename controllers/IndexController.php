@@ -69,9 +69,11 @@ class IndexController extends MiniEngine_Controller
 
         $stmt = $db->prepare(
             "SELECT pm.localPadId, pm.title, pm.createdDate, pm.lastEditedDate,
-                    ps.guestPolicy, ps.headRev
+                    ps.guestPolicy, ps.headRev,
+                    pa.fullName AS creatorName
              FROM pro_padmeta pm
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
+             LEFT JOIN pro_accounts pa ON pa.id = pm.creatorId AND pa.isDeleted = 0
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
                AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}
              ORDER BY pm.lastEditedDate DESC

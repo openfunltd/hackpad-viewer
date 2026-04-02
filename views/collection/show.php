@@ -21,6 +21,10 @@ $this->yield_start('content');
         </a>
         <div class="pad-list-meta">
           <?= $this->escape(HackpadHelper::formatDate($pad['lastEditedDate'])) ?>
+          <?php $creator = html_entity_decode($pad['creatorName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8'); ?>
+          <?php if ($creator !== ''): ?>
+            &nbsp;&bull;&nbsp;<?= $this->escape($creator) ?>
+          <?php endif; ?>
         </div>
         <?php if ($preview !== ''): ?>
         <div class="pad-list-preview"><?= $this->escape($preview) ?></div>

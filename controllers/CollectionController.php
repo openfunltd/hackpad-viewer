@@ -35,13 +35,15 @@ class CollectionController extends MiniEngine_Controller
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
 
         $stmt = $db->prepare(
-            "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy, ps.headRev
-             FROM pad_access pa
+            "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy, ps.headRev,
+                    pa.fullName AS creatorName
+             FROM pad_access pac
              JOIN pro_padmeta pm
-               ON pa.globalPadId = CONCAT(pm.domainId, '\$', pm.localPadId)
+               ON pac.globalPadId = CONCAT(pm.domainId, '\$', pm.localPadId)
               AND pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
-             JOIN PAD_SQLMETA ps ON ps.id = pa.globalPadId
-             WHERE pa.groupId = ? AND pa.isRevoked = 0
+             JOIN PAD_SQLMETA ps ON ps.id = pac.globalPadId
+             LEFT JOIN pro_accounts pa ON pa.id = pm.creatorId AND pa.isDeleted = 0
+             WHERE pac.groupId = ? AND pac.isRevoked = 0
                AND ps.guestPolicy IN {$guestPolicies}
              ORDER BY pm.lastEditedDate DESC"
         );
