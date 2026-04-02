@@ -144,6 +144,10 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
 .sidebar-section {
   margin-bottom: 1.5rem;
 }
+.sidebar-section .sidebar-list {
+  max-height: 300px;
+  overflow-y: auto;
+}
 .sidebar-heading {
   font-size: 0.75rem;
   font-weight: 700;
