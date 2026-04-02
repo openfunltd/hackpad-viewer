@@ -5,6 +5,19 @@ $this->yield_end();
 
 $this->yield_start('content');
 ?>
+<?php if (!empty($this->showWelcome)): ?>
+<div class="welcome-box">
+  <h1>Hackpad 備份瀏覽器</h1>
+  <p>
+    此網站是 <strong>hackpad.tw</strong> 的唯讀備份，保存了 2015–2018 年間台灣公民社會在 Hackpad
+    上留下的共筆內容，包含 g0v、各社群與個人工作區。
+  </p>
+  <p>
+    各工作區的文章依原始權限設定保存：公開文章可直接瀏覽，私有工作區的文章需以原 Hackpad 帳號登入才能查看。
+  </p>
+  <a class="btn-primary" href="/ep/account/sign-in">登入查看我的文章</a>
+</div>
+<?php else: ?>
 <h2 class="page-heading">
   <?= !empty($this->filterByCreator) ? '我的 Pads' : '最近的 Pads' ?>
 </h2>
@@ -37,7 +50,7 @@ $this->yield_start('content');
   </nav>
   <?php endif; ?>
 <?php endif; ?>
+<?php endif; ?>
 <?php
 $this->yield_end();
 echo $this->partial('layout/app');
-

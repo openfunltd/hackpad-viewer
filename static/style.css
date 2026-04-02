@@ -354,3 +354,23 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
   padding:0.35rem 1rem; font-size:0.75rem; font-weight:700;
   color:#aaa; text-transform:uppercase; letter-spacing:0.05em;
 }
+
+/* ── Welcome page (primary domain, not logged in) ── */
+.welcome-box {
+  max-width: 560px;
+  margin: 3rem auto;
+  text-align: center;
+}
+.welcome-box h1 { font-size: 1.75rem; margin-bottom: 1rem; }
+.welcome-box p  { color: #555; line-height: 1.8; margin-bottom: 1rem; }
+.btn-primary {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.65rem 1.75rem;
+  background: #2563eb;
+  color: #fff;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.btn-primary:hover { background: #1d4ed8; text-decoration: none; }

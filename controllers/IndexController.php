@@ -28,6 +28,13 @@ class IndexController extends MiniEngine_Controller
         // On the primary domain, show only the logged-in user's own pads.
         // On subdomains, show all pads visible to the user.
         $isPrimaryDomain = (HackpadHelper::getSubdomain() === '');
+
+        // Primary domain + not logged in → show welcome/info page, no pad list
+        if ($isPrimaryDomain && !$user) {
+            $this->view->showWelcome = true;
+            return;
+        }
+
         $filterByCreator = false;
         $creatorId       = null;
 
