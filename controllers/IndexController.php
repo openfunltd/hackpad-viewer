@@ -25,7 +25,28 @@ class IndexController extends MiniEngine_Controller
         $db   = MiniEngine::getDb();
         $user = $this->view->user;
 
+        // On the primary domain, show only the logged-in user's own pads.
+        // On subdomains, show all pads visible to the user.
+        $isPrimaryDomain = (HackpadHelper::getSubdomain() === '');
+        $filterByCreator = false;
+        $creatorId       = null;
+
+        if ($isPrimaryDomain && $user) {
+            // Resolve the user's account ID within this domain
+            $email   = MiniEngine::getSession('user_email');
+            $stmt    = $db->prepare(
+                'SELECT id FROM pro_accounts WHERE email = ? AND domainId = ? AND isDeleted = 0 LIMIT 1'
+            );
+            $stmt->execute([$email, $domainId]);
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if ($row) {
+                $filterByCreator = true;
+                $creatorId       = (int) $row['id'];
+            }
+        }
+
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
+        $creatorFilter = $filterByCreator ? " AND pm.creatorId = $creatorId" : '';
 
         $page   = max(1, (int)($_GET['page'] ?? 1));
         $offset = ($page - 1) * self::PER_PAGE;
@@ -34,7 +55,7 @@ class IndexController extends MiniEngine_Controller
             "SELECT COUNT(*) FROM pro_padmeta pm
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
-               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}"
+               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}"
         );
         $stmt->execute([$domainId]);
         $total = (int) $stmt->fetchColumn();
@@ -45,15 +66,16 @@ class IndexController extends MiniEngine_Controller
              FROM pro_padmeta pm
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
-               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}
+               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}
              ORDER BY pm.lastEditedDate DESC
              LIMIT " . self::PER_PAGE . " OFFSET " . $offset
         );
         $stmt->execute([$domainId]);
 
-        $this->view->pads       = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        $this->view->page       = $page;
-        $this->view->totalPages = (int) ceil($total / self::PER_PAGE);
+        $this->view->pads            = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->view->page            = $page;
+        $this->view->totalPages      = (int) ceil($total / self::PER_PAGE);
+        $this->view->filterByCreator = $filterByCreator;
     }
 
     public function robotsAction()

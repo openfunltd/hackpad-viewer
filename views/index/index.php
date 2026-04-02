@@ -5,9 +5,13 @@ $this->yield_end();
 
 $this->yield_start('content');
 ?>
-<h2 class="page-heading">最近的 Pads</h2>
+<h2 class="page-heading">
+  <?= !empty($this->filterByCreator) ? '我的 Pads' : '最近的 Pads' ?>
+</h2>
 <?php if (empty($this->pads)): ?>
-  <p style="color:#aaa;">此 workspace 目前沒有公開的 pad。</p>
+  <p style="color:#aaa;">
+    <?= !empty($this->filterByCreator) ? '你在此 workspace 尚未建立任何 pad。' : '此 workspace 目前沒有公開的 pad。' ?>
+  </p>
 <?php else: ?>
   <ul class="pad-list">
     <?php foreach ($this->pads as $pad): ?>
