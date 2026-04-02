@@ -22,7 +22,38 @@
   </div>
 </header>
 <main class="container">
-<?= $this->yield('content') ?>
+  <div class="page-layout">
+    <div class="page-content">
+    <?= $this->yield('content') ?>
+    </div>
+    <?php if (!empty($this->members) || !empty($this->collections)): ?>
+    <aside class="sidebar">
+      <?php if (!empty($this->members)): ?>
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">Members</h3>
+        <ul class="sidebar-list">
+          <?php foreach ($this->members as $m): ?>
+          <li><a href="/ep/profile/<?= (int)$m['id'] ?>"><?= $this->escape($m['fullName'] ?: $m['email']) ?></a></li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
+      <?php if (!empty($this->collections)): ?>
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">Collections</h3>
+        <ul class="sidebar-list">
+          <?php foreach ($this->collections as $c): ?>
+          <li>
+            <a href="/collection/<?= (int)$c['groupId'] ?>"><?= $this->escape($c['name']) ?></a>
+            <span class="sidebar-count"><?= (int)$c['padCount'] ?></span>
+          </li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
+    </aside>
+    <?php endif; ?>
+  </div>
 </main>
 <footer class="site-footer">
   <div class="container">

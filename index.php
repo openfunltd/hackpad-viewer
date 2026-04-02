@@ -5,6 +5,14 @@ MiniEngine::dispatch(function($uri){
     if ($uri == '/robots.txt') {
         return ['index', 'robots'];
     }
+    // /collection/{groupId}
+    if (preg_match('#^/collection/(\d+)$#', $uri, $m)) {
+        return ['collection', 'show', [(int)$m[1]]];
+    }
+    // /ep/profile/{userId}
+    if (preg_match('#^/ep/profile/(\d+)$#', $uri, $m)) {
+        return ['profile', 'show', [(int)$m[1]]];
+    }
     // /ep/* routes (login, logout, OAuth callback)
     if (strpos($uri, '/ep/') === 0) {
         return null; // let default dispatcher handle ep/account/...

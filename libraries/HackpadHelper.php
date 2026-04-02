@@ -181,4 +181,44 @@ class HackpadHelper
         if (mb_strlen($text, 'UTF-8') <= $len) return $text;
         return mb_substr($text, 0, $len, 'UTF-8') . '…';
     }
+
+    /**
+     * Get members (pro_accounts) for a domain, ordered by name.
+     * Limited to $limit to avoid sidebar overflow on large workspaces.
+     */
+    public static function getDomainMembers(int $domainId, int $limit = 50): array
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT id, fullName, email FROM pro_accounts
+             WHERE domainId = ? AND isDeleted = 0
+             ORDER BY fullName LIMIT ' . (int)$limit
+        );
+        $stmt->execute([$domainId]);
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        foreach ($rows as &$row) {
+            // fullName may be stored as HTML entities in the original hackpad DB
+            $row['fullName'] = html_entity_decode($row['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        }
+        return $rows;
+    }
+
+    /**
+     * Get public collections (pro_groups) for a domain, ordered by pad count desc.
+     */
+    public static function getDomainCollections(int $domainId): array
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT g.groupId, g.name, COUNT(pa.globalPadId) AS padCount
+             FROM pro_groups g
+             LEFT JOIN pad_access pa ON pa.groupId = g.groupId AND pa.isRevoked = 0
+             WHERE g.domainId = ? AND g.isDeleted = 0 AND g.isPublic = 1
+             GROUP BY g.groupId
+             HAVING padCount > 0
+             ORDER BY padCount DESC'
+        );
+        $stmt->execute([$domainId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

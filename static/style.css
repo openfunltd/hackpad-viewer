@@ -126,3 +126,70 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
 .error-box h1 { font-size: 4rem; font-weight: 700; color: #ddd; margin: 0; }
 .error-box h2 { font-size: 1.25rem; font-weight: 600; margin: 0.5rem 0 1rem; }
 .error-box p  { color: #777; }
+
+/* ── Page layout with sidebar ── */
+.page-layout {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
+}
+.page-content {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar {
+  width: 200px;
+  flex-shrink: 0;
+}
+.sidebar-section {
+  margin-bottom: 1.5rem;
+}
+.sidebar-heading {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  margin: 0 0 0.5rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid #eee;
+}
+.sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.sidebar-list li {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f5f5f5;
+}
+.sidebar-list a {
+  color: #444;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sidebar-list a:hover { color: #1a73e8; text-decoration: underline; }
+.sidebar-count {
+  font-size: 0.75rem;
+  color: #bbb;
+  margin-left: 0.4rem;
+  flex-shrink: 0;
+}
+.back-link {
+  margin-right: 0.4rem;
+  color: #999;
+  text-decoration: none;
+  font-weight: 400;
+}
+.back-link:hover { color: #333; }
+
+@media (max-width: 700px) {
+  .page-layout { flex-direction: column; }
+  .sidebar { width: 100%; }
+}

@@ -3,8 +3,13 @@ class PadController extends MiniEngine_Controller
 {
     public function init()
     {
-        $this->view->domain = HackpadHelper::getCurrentDomain();
-        $this->view->user   = HackpadHelper::getCurrentUser();
+        $this->view->domain      = HackpadHelper::getCurrentDomain();
+        $this->view->user        = HackpadHelper::getCurrentUser();
+        $domainId = $this->view->domain['id'] ?? null;
+        if ($domainId) {
+            $this->view->members     = HackpadHelper::getDomainMembers($domainId);
+            $this->view->collections = HackpadHelper::getDomainCollections($domainId);
+        }
     }
 
     /**
