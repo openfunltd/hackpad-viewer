@@ -50,6 +50,28 @@ $this->yield_start('content');
           <?php endif; ?>
         </td>
       </tr>
+      <?php if (!empty($s['diff'])): ?>
+      <tr class="history-diff-row">
+        <td colspan="3">
+          <details open>
+            <summary>顯示 diff</summary>
+            <div class="diff-block">
+              <?php foreach ($s['diff'] as $entry): ?>
+                <?php if ($entry['op'] === '+'): ?>
+                  <div class="diff-add">+ <?= htmlspecialchars($entry['line'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
+                <?php elseif ($entry['op'] === '-'): ?>
+                  <div class="diff-del">- <?= htmlspecialchars($entry['line'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
+                <?php elseif ($entry['op'] === ' '): ?>
+                  <div class="diff-ctx">  <?= htmlspecialchars($entry['line'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
+                <?php else: ?>
+                  <div class="diff-skip"><?= htmlspecialchars($entry['line'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?></div>
+                <?php endif; ?>
+              <?php endforeach; ?>
+            </div>
+          </details>
+        </td>
+      </tr>
+      <?php endif; ?>
       <?php endforeach; ?>
     </tbody>
   </table>

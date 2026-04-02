@@ -89,6 +89,6 @@ class PadController extends MiniEngine_Controller
         $this->view->padMeta  = $padMeta;
         $this->view->padTitle = $padMeta['title'] ?: $localPadId;
         $this->view->padSlug  = $padSlug;
-        $this->view->sessions = PadContentLoader::getRevisionHistory($globalPadId);
+        $this->view->sessions = PadContentLoader::getRevisionHistoryWithDiff($globalPadId);
     }
 }

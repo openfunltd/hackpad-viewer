@@ -139,7 +139,7 @@ class PadContentLoader
         $authorInfo = self::buildAuthorInfo($numToAttrib);
 
         // Group into edit sessions (same author, gap < 5 min)
-        $sessionGapMs = 5 * 60 * 1000;
+        $sessionGapMs = 60 * 60 * 1000;
         $sessions = [];
         $cur = null;
         foreach ($revs as $r) {
@@ -335,6 +335,292 @@ class PadContentLoader
             $numToAttrib[intval($numStr)] = $pair;
         }
         return $numToAttrib;
+    }
+
+    /**
+     * Get individual changeset strings for revisions $from to $to (inclusive).
+     * Returns associative array [rev => changeset_string], ksorted.
+     */
+    private static function getChangesetsIndexed(string $globalPadId, int $from, int $to): array
+    {
+        $db = MiniEngine::getDb();
+
+        $stmt = $db->prepare('SELECT NUMID FROM PAD_REVS_META WHERE ID = ?');
+        $stmt->execute([$globalPadId]);
+        $row  = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return [];
+        $numid = $row['NUMID'];
+
+        $firstPage = (int) floor($from / self::PAGE_SIZE) * self::PAGE_SIZE;
+        $lastPage  = (int) floor($to / self::PAGE_SIZE) * self::PAGE_SIZE;
+
+        $changesets = [];
+
+        $stmt = $db->prepare(
+            'SELECT PAGESTART, DATA, OFFSETS FROM PAD_REVS_TEXT
+             WHERE NUMID = ? AND PAGESTART >= ? AND PAGESTART <= ?
+             ORDER BY PAGESTART'
+        );
+        $stmt->execute([$numid, $firstPage, $lastPage]);
+        $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        foreach ($pages as $page) {
+            $pageStart = (int) $page['PAGESTART'];
+            $offsets   = array_map('intval', explode(',', $page['OFFSETS']));
+            $data      = $page['DATA'];
+            $charPos   = 0;
+
+            for ($i = 0; $i < count($offsets); $i++) {
+                $rev = $pageStart + $i;
+                $len = $offsets[$i];
+                if ($len === 0) { $charPos += $len; continue; }
+                if ($rev >= $from && $rev <= $to) {
+                    $changesets[$rev] = mb_substr($data, $charPos, $len, 'UTF-8');
+                }
+                $charPos += $len;
+            }
+        }
+
+        ksort($changesets);
+        return $changesets;
+    }
+
+    /**
+     * Get plain text at each revision boundary in $revs.
+     * $revs is a sorted array of revision numbers.
+     * Returns [rev => plaintext].
+     */
+    private static function getTextsAtRevBoundaries(string $globalPadId, array $revs): array
+    {
+        if (empty($revs)) return [];
+
+        $meta = self::getPadMeta($globalPadId);
+        if (!$meta) return [];
+        $keyRevInterval = $meta['keyRevInterval'] ?? self::KEY_REV_INTERVAL;
+
+        $minRev = min($revs);
+        $maxRev = max($revs);
+
+        // Find the largest key rev <= minRev
+        $keyRev = (int) floor($minRev / $keyRevInterval) * $keyRevInterval;
+        $keyAtext = self::getKeyRevAtext($globalPadId, $keyRev);
+        if ($keyAtext === null) {
+            $keyRev   = 0;
+            $keyAtext = self::getKeyRevAtext($globalPadId, 0);
+        }
+        if ($keyAtext === null) return [];
+
+        $runs = Easysync::atextToRuns($keyAtext);
+
+        $revsSet = array_flip($revs);
+        $texts   = [];
+
+        // If keyRev itself is in revs, capture it
+        if (isset($revsSet[$keyRev])) {
+            $texts[$keyRev] = implode('', array_column($runs, 't'));
+        }
+
+        if ($maxRev > $keyRev) {
+            $indexed = self::getChangesetsIndexed($globalPadId, $keyRev + 1, $maxRev);
+            for ($rev = $keyRev + 1; $rev <= $maxRev; $rev++) {
+                if (isset($indexed[$rev]) && $indexed[$rev] !== '') {
+                    $runs = Easysync::applyToRuns($runs, $indexed[$rev]);
+                }
+                if (isset($revsSet[$rev])) {
+                    $texts[$rev] = implode('', array_column($runs, 't'));
+                }
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * LCS-based line diff.
+     * Returns array of ['op' => ' '|'+'|'-', 'line' => string].
+     */
+    private static function computeLineDiff(string $before, string $after): array
+    {
+        $aLines = explode("\n", rtrim($before, "\n"));
+        $bLines = explode("\n", rtrim($after,  "\n"));
+
+        // Guard against huge diffs
+        $m = count($aLines);
+        $n = count($bLines);
+        if ($m * $n > 400000) {
+            return [['op' => '~', 'line' => '（diff 過大，略過）']];
+        }
+
+        // Build LCS table
+        $dp = array_fill(0, $m + 1, array_fill(0, $n + 1, 0));
+        for ($i = 1; $i <= $m; $i++) {
+            for ($j = 1; $j <= $n; $j++) {
+                if ($aLines[$i - 1] === $bLines[$j - 1]) {
+                    $dp[$i][$j] = $dp[$i - 1][$j - 1] + 1;
+                } else {
+                    $dp[$i][$j] = max($dp[$i - 1][$j], $dp[$i][$j - 1]);
+                }
+            }
+        }
+
+        // Backtrack to produce diff
+        $diff = [];
+        $i = $m; $j = $n;
+        while ($i > 0 || $j > 0) {
+            if ($i > 0 && $j > 0 && $aLines[$i - 1] === $bLines[$j - 1]) {
+                array_unshift($diff, ['op' => ' ', 'line' => $aLines[$i - 1]]);
+                $i--; $j--;
+            } elseif ($j > 0 && ($i === 0 || $dp[$i][$j - 1] >= $dp[$i - 1][$j])) {
+                array_unshift($diff, ['op' => '+', 'line' => $bLines[$j - 1]]);
+                $j--;
+            } else {
+                array_unshift($diff, ['op' => '-', 'line' => $aLines[$i - 1]]);
+                $i--;
+            }
+        }
+
+        return $diff;
+    }
+
+    /**
+     * Collapse unchanged context lines, keeping $ctx lines around changes.
+     * Groups collapsed lines into ['op' => '~', 'line' => "（N 行未修改）"].
+     */
+    private static function collapseContext(array $diff, int $ctx = 2): array
+    {
+        $n = count($diff);
+        if ($n === 0) return [];
+
+        // Mark which indices are "near a change"
+        $keep = array_fill(0, $n, false);
+        for ($i = 0; $i < $n; $i++) {
+            if ($diff[$i]['op'] !== ' ') {
+                for ($k = max(0, $i - $ctx); $k <= min($n - 1, $i + $ctx); $k++) {
+                    $keep[$k] = true;
+                }
+            }
+        }
+
+        $result = [];
+        $i = 0;
+        while ($i < $n) {
+            if ($keep[$i]) {
+                $result[] = $diff[$i];
+                $i++;
+            } else {
+                // Count consecutive skipped lines
+                $start = $i;
+                while ($i < $n && !$keep[$i]) $i++;
+                $count = $i - $start;
+                $result[] = ['op' => '~', 'line' => "（{$count} 行未修改）"];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * Get the revision history with per-session diffs.
+     * Same structure as getRevisionHistory() but each session has an optional 'diff' key.
+     */
+    public static function getRevisionHistoryWithDiff(string $globalPadId): array
+    {
+        $db = MiniEngine::getDb();
+
+        $stmt = $db->prepare('SELECT NUMID FROM PAD_REVMETA_META WHERE ID = ?');
+        $stmt->execute([$globalPadId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return [];
+        $numid = $row['NUMID'];
+
+        $stmt = $db->prepare(
+            'SELECT PAGESTART, DATA, OFFSETS FROM PAD_REVMETA_TEXT WHERE NUMID = ? ORDER BY PAGESTART'
+        );
+        $stmt->execute([$numid]);
+        $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $numToAttrib = self::getApool($globalPadId);
+        $indexToKey  = [];
+        foreach ($numToAttrib as $num => $pair) {
+            if ($pair[0] === 'author') {
+                $indexToKey[$num] = $pair[1];
+            }
+        }
+
+        $revs = [];
+        foreach ($pages as $page) {
+            $pageStart = (int) $page['PAGESTART'];
+            $offsets   = array_map('intval', explode(',', $page['OFFSETS']));
+            $charPos   = 0;
+            for ($i = 0; $i < count($offsets); $i++) {
+                $len = $offsets[$i];
+                if ($len === 0) continue;
+                $json = mb_substr($page['DATA'], $charPos, $len, 'UTF-8');
+                $charPos += $len;
+                $entry = json_decode($json, true);
+                if (!$entry) continue;
+                $rev       = $pageStart + $i;
+                $authorIdx = $entry['a'] ?? 0;
+                $revs[]    = [
+                    'rev'       => $rev,
+                    't'         => (int)($entry['t'] ?? 0),
+                    'authorKey' => $indexToKey[$authorIdx] ?? '',
+                ];
+            }
+        }
+
+        if (empty($revs)) return [];
+
+        $authorInfo   = self::buildAuthorInfo($numToAttrib);
+        $sessionGapMs = 60 * 60 * 1000;
+        $sessions     = [];
+        $cur          = null;
+        foreach ($revs as $r) {
+            if ($cur === null
+                || $r['authorKey'] !== $cur['authorKey']
+                || ($r['t'] - $cur['endTime']) > $sessionGapMs
+            ) {
+                if ($cur) $sessions[] = $cur;
+                $info = $authorInfo[$r['authorKey']] ?? null;
+                $cur  = [
+                    'fromRev'     => $r['rev'],
+                    'toRev'       => $r['rev'],
+                    'startTime'   => $r['t'],
+                    'endTime'     => $r['t'],
+                    'authorKey'   => $r['authorKey'],
+                    'authorName'  => $info['name'] ?? ($r['authorKey'] ?: '(unknown)'),
+                    'authorColor' => $info['color'] ?? '#888',
+                ];
+            } else {
+                $cur['toRev']   = $r['rev'];
+                $cur['endTime'] = $r['t'];
+            }
+        }
+        if ($cur) $sessions[] = $cur;
+
+        // sessions is oldest-first here; collect all toRev boundaries
+        $toRevs = array_unique(array_column($sessions, 'toRev'));
+        sort($toRevs);
+        $texts = self::getTextsAtRevBoundaries($globalPadId, $toRevs);
+
+        $prevText = '';
+        foreach ($sessions as &$s) {
+            $afterText = $texts[$s['toRev']] ?? '';
+            $fullDiff  = self::computeLineDiff($prevText, $afterText);
+            $collapsed = self::collapseContext($fullDiff, 2);
+            // Only attach diff if there are actual changes
+            $hasChange = false;
+            foreach ($collapsed as $entry) {
+                if ($entry['op'] !== ' ') { $hasChange = true; break; }
+            }
+            if ($hasChange) {
+                $s['diff'] = $collapsed;
+            }
+            $prevText = $afterText;
+        }
+        unset($s);
+
+        return array_reverse($sessions); // newest first
     }
 
     /**
