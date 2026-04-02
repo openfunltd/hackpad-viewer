@@ -13,6 +13,7 @@ MiniEngine::dispatch(function($uri){
     if (preg_match('#^/ep/profile/(\d+)$#', $uri, $m)) {
         return ['profile', 'show', [(int)$m[1]]];
     }
+    if ($uri === '/search') return ['search', 'index'];
     if ($uri === '/admin')          return ['admin', 'index'];
     if ($uri === '/admin/domains')  return ['admin', 'domains'];
     if ($uri === '/admin/users')    return ['admin', 'users'];

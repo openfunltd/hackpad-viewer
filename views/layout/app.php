@@ -12,6 +12,10 @@
   <div class="container">
     <a class="site-name" href="/"><?= $this->escape($this->domain['orgName'] ?? 'Hackpad') ?></a>
     <nav class="header-nav">
+      <form class="header-search" method="get" action="/search">
+        <input type="text" name="q" placeholder="搜尋…" value="<?= $this->escape($_GET['q'] ?? '') ?>">
+        <button type="submit">🔍</button>
+      </form>
       <?php if ($this->user): ?>
         <div class="user-menu">
           <span class="user-name"><?= $this->escape($this->user['fullName']) ?> ▾</span>
