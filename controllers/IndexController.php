@@ -81,7 +81,7 @@ class IndexController extends MiniEngine_Controller
 
         $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->view->pads            = $pads;
-        $this->view->previews        = PadContentLoader::getPadTextPreviews($pads, $domainId);
+        $this->view->previews        = PadContentLoader::getPadTextPreviews($pads, $domainId, 5);
         $this->view->page            = $page;
         $this->view->totalPages      = (int) ceil($total / self::PER_PAGE);
         $this->view->filterByCreator = $filterByCreator;

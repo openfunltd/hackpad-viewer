@@ -802,18 +802,59 @@ class PadContentLoader
             $text = $parsed['atext']['text'] ?? $parsed['text'] ?? null;
             if ($text === null) continue;
 
-            // Strip trailing newline sentinel, split into lines, take first $maxLines
+            // If the snapshot still contains the default hackpad template text
+            // (happens when keyRev=0 and the pad was edited with headRev<100),
+            // apply changesets up to headRev to get the actual current text.
+            $headRev = array_reduce($pads, function ($carry, $p) use ($info) {
+                return $p['localPadId'] === $info['localPadId'] ? (int) $p['headRev'] : $carry;
+            }, 0);
+            if (self::isDefaultTemplate($text) && $headRev > $info['keyRev']) {
+                $actual = self::getPlainTextAtHead($globalPadId, $headRev, $info['keyRev']);
+                if ($actual !== null) {
+                    $text = $actual;
+                }
+            }
+
+            // Skip the first line (usually the title, same as pad title shown above)
             $lines   = explode("\n", rtrim($text, "\n"));
-            $preview = implode("\n", array_slice(
-                array_values(array_filter($lines, fn($l) => trim($l) !== '')),
-                0,
-                $maxLines
-            ));
+            $nonEmpty = array_values(array_filter($lines, fn($l) => trim($l) !== ''));
+            // Drop the first non-empty line (title duplicate), show next $maxLines
+            $preview = implode("\n", array_slice($nonEmpty, 1, $maxLines));
             if ($preview !== '') {
                 $previews[$info['localPadId']] = $preview;
             }
         }
 
         return $previews;
+    }
+
+    /** Detect hackpad's default "new pad" template text. */
+    private static function isDefaultTemplate(string $text): bool
+    {
+        return strpos($text, 'This pad text is synchronized as you type') !== false;
+    }
+
+    /**
+     * Apply changesets from keyRev+1 to headRev and return plain text.
+     * Used when a key-revision snapshot still contains the default template.
+     */
+    private static function getPlainTextAtHead(string $globalPadId, int $headRev, int $keyRev): ?string
+    {
+        $keyAtext = self::getKeyRevAtext($globalPadId, $keyRev);
+        if ($keyAtext === null) return null;
+
+        $runs        = Easysync::atextToRuns($keyAtext);
+        $numToAttrib = self::getApool($globalPadId);
+
+        if ($headRev > $keyRev) {
+            $changesets = self::getChangesets($globalPadId, $keyRev + 1, $headRev);
+            foreach ($changesets as $cs) {
+                if ($cs !== '') {
+                    $runs = Easysync::applyToRuns($runs, $cs, $numToAttrib);
+                }
+            }
+        }
+
+        return implode('', array_column($runs, 't'));
     }
 }
