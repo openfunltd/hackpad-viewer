@@ -69,7 +69,7 @@ class IndexController extends MiniEngine_Controller
 
         $stmt = $db->prepare(
             "SELECT pm.localPadId, pm.title, pm.createdDate, pm.lastEditedDate,
-                    ps.guestPolicy
+                    ps.guestPolicy, ps.headRev
              FROM pro_padmeta pm
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
@@ -79,7 +79,9 @@ class IndexController extends MiniEngine_Controller
         );
         $stmt->execute([$domainId]);
 
-        $this->view->pads            = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->view->pads            = $pads;
+        $this->view->previews        = PadContentLoader::getPadTextPreviews($pads, $domainId);
         $this->view->page            = $page;
         $this->view->totalPages      = (int) ceil($total / self::PER_PAGE);
         $this->view->filterByCreator = $filterByCreator;

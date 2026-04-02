@@ -707,4 +707,113 @@ class PadContentLoader
     {
         // No-op: caching is disabled
     }
+
+    /**
+     * Batch-fetch plain-text previews for multiple pads.
+     * Uses the key revision snapshot to avoid running the full changeset engine.
+     *
+     * @param array  $pads      Each element must have 'localPadId' and 'headRev'.
+     * @param int    $domainId  Domain that all pads belong to.
+     * @param int    $maxLines  Maximum number of non-empty lines to return per pad.
+     * @return array  Map of localPadId => preview string.
+     */
+    public static function getPadTextPreviews(array $pads, int $domainId, int $maxLines = 5): array
+    {
+        if (empty($pads)) return [];
+
+        $db = MiniEngine::getDb();
+
+        // Build globalPadId → [localPadId, keyRev, pageStart] map
+        $padInfo = [];
+        foreach ($pads as $pad) {
+            $local       = $pad['localPadId'];
+            $headRev     = (int) $pad['headRev'];
+            $keyRev      = (int) floor($headRev / self::KEY_REV_INTERVAL) * self::KEY_REV_INTERVAL;
+            $pageStart   = (int) floor($keyRev / self::PAGE_SIZE) * self::PAGE_SIZE;
+            $globalPadId = $domainId . '$' . $local;
+            $padInfo[$globalPadId] = [
+                'localPadId' => $local,
+                'keyRev'     => $keyRev,
+                'pageStart'  => $pageStart,
+                'indexInPage'=> $keyRev - $pageStart,
+            ];
+        }
+
+        // Batch 1: resolve NUMIDs
+        $globalIds    = array_keys($padInfo);
+        $placeholders = implode(',', array_fill(0, count($globalIds), '?'));
+        $stmt = $db->prepare("SELECT ID, NUMID FROM PAD_REVMETA_META WHERE ID IN ($placeholders)");
+        $stmt->execute($globalIds);
+        $numidMap = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $numidMap[$row['ID']] = (int) $row['NUMID'];
+        }
+
+        // Batch 2: fetch REVMETA rows  (OR-joined conditions)
+        $conditions = [];
+        $params     = [];
+        foreach ($padInfo as $globalPadId => $info) {
+            if (!isset($numidMap[$globalPadId])) continue;
+            $numid = $numidMap[$globalPadId];
+            $padInfo[$globalPadId]['numid'] = $numid;
+            $conditions[] = '(NUMID = ? AND PAGESTART = ?)';
+            $params[]     = $numid;
+            $params[]     = $info['pageStart'];
+        }
+        if (empty($conditions)) return [];
+
+        $stmt = $db->prepare(
+            'SELECT NUMID, PAGESTART, DATA, OFFSETS FROM PAD_REVMETA_TEXT WHERE ' .
+            implode(' OR ', $conditions)
+        );
+        $stmt->execute($params);
+
+        $revmetaRows = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $key = $row['NUMID'] . '_' . $row['PAGESTART'];
+            $revmetaRows[$key] = $row;
+        }
+
+        // Extract preview text
+        $previews = [];
+        foreach ($padInfo as $globalPadId => $info) {
+            if (!isset($info['numid'])) continue;
+            $key = $info['numid'] . '_' . $info['pageStart'];
+            if (!isset($revmetaRows[$key])) continue;
+
+            $row         = $revmetaRows[$key];
+            $indexInPage = $info['indexInPage'];
+            $offsets     = array_map('intval', explode(',', $row['OFFSETS']));
+            $data        = $row['DATA'];
+
+            // OFFSETS stores character counts (not byte lengths) — use mb_substr
+            $charPos = 0;
+            for ($i = 0; $i < $indexInPage; $i++) {
+                $charPos += $offsets[$i] ?? 0;
+            }
+            $length = $offsets[$indexInPage] ?? 0;
+            if ($length === 0) continue;
+
+            $json   = mb_substr($data, $charPos, $length, 'UTF-8');
+            $parsed = json_decode($json, true);
+            if (!$parsed) continue;
+
+            // atext may be nested under 'atext' key or at top level
+            $text = $parsed['atext']['text'] ?? $parsed['text'] ?? null;
+            if ($text === null) continue;
+
+            // Strip trailing newline sentinel, split into lines, take first $maxLines
+            $lines   = explode("\n", rtrim($text, "\n"));
+            $preview = implode("\n", array_slice(
+                array_values(array_filter($lines, fn($l) => trim($l) !== '')),
+                0,
+                $maxLines
+            ));
+            if ($preview !== '') {
+                $previews[$info['localPadId']] = $preview;
+            }
+        }
+
+        return $previews;
+    }
 }

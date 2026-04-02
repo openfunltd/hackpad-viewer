@@ -113,6 +113,16 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
 .pad-list-item:last-child { border-bottom: none; }
 .pad-list-title { font-weight: 600; font-size: 1rem; }
 .pad-list-meta  { font-size: 0.8rem; color: #888; margin-top: 0.15rem; }
+.pad-list-preview {
+  font-size: 0.82rem;
+  color: #555;
+  margin-top: 0.3rem;
+  white-space: pre-wrap;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
 
 /* ── Pad View ── */
 .pad-view { background: #fff; border-radius: 6px; padding: 2rem 2.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-left: 120px; }

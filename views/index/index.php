@@ -29,6 +29,7 @@ $this->yield_start('content');
 <?php else: ?>
   <ul class="pad-list">
     <?php foreach ($this->pads as $pad): ?>
+      <?php $preview = $this->previews[$pad['localPadId']] ?? ''; ?>
       <li class="pad-list-item">
         <a class="pad-list-title" href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'])) ?>">
           <?= $this->escape($pad['title'] ?: $pad['localPadId']) ?>
@@ -36,6 +37,9 @@ $this->yield_start('content');
         <div class="pad-list-meta">
           <?= $this->escape(HackpadHelper::formatDate($pad['lastEditedDate'])) ?>
         </div>
+        <?php if ($preview !== ''): ?>
+        <div class="pad-list-preview"><?= $this->escape($preview) ?></div>
+        <?php endif; ?>
       </li>
     <?php endforeach; ?>
   </ul>

@@ -204,28 +204,62 @@ hackpad-viewer/
 
 ## 目前進度（完成 / 待做）
 
-### ✅ 已完成
-- `mini-engine.php` 框架整合
-- `libraries/Easysync.php`：完整的 Easysync2 changeset 解析、套用、atext→HTML 轉換
-- `libraries/PadContentLoader.php`：從 MySQL key revision 載入 atext，套用剩餘 changesets，渲染 HTML
-- `libraries/HackpadHelper.php`：subdomain 解析、domain 查詢、pad 權限檢查、使用者查詢
-- `libraries/GoogleOAuth.php`：Google OAuth2 完整流程（auth URL、code exchange、state 驗證）
-- `controllers/IndexController.php`：首頁 pad 列表
-- `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）
-- `controllers/EpController.php`：登入/登出/Google OAuth callback
-- `controllers/ErrorController.php`：使用 `views/error/error.php`，保留 error_log，無遞迴風險
-- `views/layout/app.php`：主版型
-- `views/index/index.php`：pad 列表頁 view（含 pretty URL 連結、最後編輯日期）
-- `views/pad/show.php`：pad 閱讀頁 view（標題、metadata、HTML 內容）
-- `views/ep/account_sign_in.php`：登入頁 view（Google 登入按鈕、錯誤訊息）
-- `views/error/error.php`：統一錯誤頁（404/500 自動切換，dev 模式顯示 stack trace）
-- `static/style.css`：完整樣式（layout、pad 列表、pad 閱讀頁、登入頁、錯誤頁、pad 內容 typography）
-- `index.php`：完整路由（`/` → index、`/{padSlug}` → PadController、`/ep/*` → EpController）
-- `config.sample.inc.php`：補齊所有環境變數範例
+> 最後更新：2026-04-02
 
-### 🔲 待完成
-- 整合測試：連接真實 DB 驗證 pad 渲染是否正確
-- OOM 問題調查：`mini-engine.php` line 28 記憶體耗盡（128MB 限制），疑似 `ErrorController` 遞迴觸發或大型 pad 渲染耗記憶體，待連接真實 DB 後驗證
+### ✅ 已完成
+
+#### 核心框架 & 資料存取
+- `mini-engine.php` 框架整合
+- `libraries/Easysync.php`：完整的 Easysync2 changeset 解析、套用、atext→HTML 轉換；含 per-line author gutter、comment author 顯示
+- `libraries/PadContentLoader.php`：從 MySQL key revision 載入 atext，套用剩餘 changesets，渲染 HTML；含歷史紀錄 diff（LCS 演算法、context collapse、1 小時內同人合併）
+- `libraries/HackpadHelper.php`：subdomain 解析、domain 查詢、pad 權限檢查（email-based 跨 domain）、使用者查詢、getUserDomains、getDomainUrl、isSiteAdmin
+- `libraries/GoogleOAuth.php`：Google OAuth2 完整流程（auth URL、code exchange、state 驗證）
+- `libraries/Elastic.php`：Elasticsearch client（使用者提供）
+
+#### 頁面 & 路由
+- `controllers/IndexController.php`：首頁 pad 列表；主網域登入後顯示「我的 Pads」，未登入顯示歡迎說明頁
+- `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）+ `/{padSlug}/history` 歷史紀錄頁
+- `controllers/EpController.php`：登入/登出/Google OAuth callback；EMAIL_ALIASES 支援；open redirect 防護
+- `controllers/AdminController.php`：Site admin 面板（/admin/domains, /admin/users），僅 isAdmin=1 可存取
+- `controllers/SearchController.php`：Elasticsearch 搜尋（/search?q=...），依 domainId + guestPolicy 過濾，分頁
+- `controllers/ErrorController.php`：統一錯誤頁（404/500）
+
+#### 存取控制
+- `init.inc.php`：全域 auth gate（isDomainPublic → pad-level guestPolicy bypass → isEmailDomainMember）；pre-load `_userDomains`、`_isSiteAdmin` 全域變數
+- 主網域 / 子網域 / 私有 domain / 公開 pad 的存取矩陣已全部實作並驗證
+
+#### UI
+- `views/layout/app.php`：主版型；header 搜尋框；user dropdown（workspace 清單 + admin 連結）；footer 含 openfun.tw 維運說明
+- `views/index/index.php`：pad 列表（含欄位排序、最後編輯日期）；未登入主網域顯示歡迎頁
+- `views/pad/show.php`：pad 閱讀頁；per-line author gutter（白框外左側）
+- `views/pad/history.php`：歷史紀錄頁；每個 session 的 diff（新增綠色/刪除紅色，預設全展開）
+- `views/admin/`：index.php、domains.php、users.php
+- `views/search/index.php`：搜尋結果頁（高亮標題 + 摘要）
+- `static/style.css`：全站樣式
+- `README.md`、`LICENSE`（BSD 3-Clause，openfun.tw 歐噴有限公司，2026）
+
+#### Git commits（本 session）
+| Commit | 說明 |
+|--------|------|
+| `9bd2222` | Elasticsearch 搜尋功能 |
+| `39d7152` | Footer/README/歡迎頁補充 openfun.tw 維運說明 |
+| `cc16556` | README + BSD License |
+| `e5f03d8` | 歷史 diff；預設展開；1 小時 session 合併 |
+| `e526dd4` | Pad 歷史紀錄頁 |
+| `0a6c83b` | 主網域未登入顯示歡迎頁 |
+| `7358e1f` | 主網域登入後顯示我的 Pads |
+| `bb9f6e4` | 私有 domain 中公開 pad 不需登入 |
+| `d60104e` | canReadPad 改用 email 避免跨 domain user_id 問題 |
+| `14d588a` | 私有 domain 需驗證 domain 成員資格 |
+| `6b45c49` | Site admin 面板 |
+| `90c1f22` | User workspace dropdown |
+
+### 🔲 待完成 / 已知問題
+
+- **Collection 頁**：`/collection/{groupId}` 路由存在但 CollectionController 尚未完整實作
+- **Profile 頁**：`/ep/profile/{id}` 尚未實作
+- **Collection URL 原始格式**：原始 hackpad 用 `/ep/group/{token}`，token 不在 DB 中，待研究 whackpad source
+- **Sidebar**：Members / Collections sidebar 目前僅部分子頁面有實作，尚未統一
 
 ---
 
