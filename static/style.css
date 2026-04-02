@@ -123,6 +123,18 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
   -webkit-line-clamp: 5;
   -webkit-box-orient: vertical;
 }
+.badge-private {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #888;
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  padding: 0 0.35rem;
+  vertical-align: middle;
+  letter-spacing: 0.02em;
+}
 
 /* ── Pad View ── */
 .pad-view { background: #fff; border-radius: 6px; padding: 2rem 2.5rem; box-shadow: 0 1px 4px rgba(0,0,0,.06); margin-left: 120px; }

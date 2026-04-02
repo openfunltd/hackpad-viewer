@@ -204,7 +204,7 @@ hackpad-viewer/
 
 ## 目前進度（完成 / 待做）
 
-> 最後更新：2026-04-02（17:31）
+> 最後更新：2026-04-02（17:37）
 
 ### ✅ 已完成
 
@@ -217,7 +217,8 @@ hackpad-viewer/
 - `libraries/Elastic.php`：Elasticsearch client（使用者提供）
 
 #### 頁面 & 路由
-- `controllers/IndexController.php`：首頁 pad 列表；主網域登入後顯示「我的 Pads」，未登入顯示歡迎說明頁；每篇 pad 顯示第 2–6 行預覽文字
+- `controllers/IndexController.php`：首頁 pad 列表；主網域登入後顯示「我的 Pads」，未登入顯示歡迎說明頁；每篇 pad 顯示第 2–6 行預覽文字及創作者姓名
+- `controllers/CollectionController.php`：Collection 文章列表；顯示預覽文字及創作者姓名
 - `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）+ `/{padSlug}/history` 歷史紀錄頁
 - `controllers/EpController.php`：登入/登出/Google OAuth callback；EMAIL_ALIASES 支援；open redirect 防護
 - `controllers/AdminController.php`：Site admin 面板（/admin/domains, /admin/users），僅 isAdmin=1 可存取
@@ -230,7 +231,8 @@ hackpad-viewer/
 
 #### UI
 - `views/layout/app.php`：主版型；header 搜尋框；user dropdown（workspace 清單 + admin 連結）；footer 含 openfun.tw 維運說明 + GitHub 開源連結
-- `views/index/index.php`：pad 列表（含欄位排序、最後編輯日期、預覽文字）；未登入主網域顯示歡迎頁
+- `views/index/index.php`：pad 列表（含欄位排序、最後編輯日期、創作者姓名、預覽文字）；未登入主網域顯示歡迎頁
+- `views/collection/show.php`：Collection 文章列表（含日期、創作者姓名、預覽文字）
 - `views/pad/show.php`：pad 閱讀頁；per-line author gutter（白框外左側）
 - `views/pad/history.php`：歷史紀錄頁；每個 session 的 diff（新增綠色/刪除紅色，預設全展開）
 - `views/admin/`：index.php、domains.php、users.php
@@ -241,6 +243,8 @@ hackpad-viewer/
 #### Git commits（本 session）
 | Commit | 說明 |
 |--------|------|
+| `cf4a7d1` | 文章列表（首頁 + Collection）顯示創作者姓名 |
+| `6fbd523` | Collection 頁加入預覽文字 |
 | `3176dff` | 預覽修正：略過標題行、顯示第 2–6 行；headRev<100 偵測範本並套用 changesets |
 | `6eaa1cb` | 文章列表顯示預覽文字（批次 DB 查詢，mb_substr 修正）|
 | `53042c4` | Footer 增加 GitHub 開源連結 |

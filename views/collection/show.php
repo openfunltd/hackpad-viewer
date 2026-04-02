@@ -25,6 +25,9 @@ $this->yield_start('content');
           <?php if ($creator !== ''): ?>
             &nbsp;&bull;&nbsp;<?= $this->escape($creator) ?>
           <?php endif; ?>
+          <?php if (in_array($pad['guestPolicy'] ?? '', ['domain', 'deny'])): ?>
+            &nbsp;<span class="badge-private">private</span>
+          <?php endif; ?>
         </div>
         <?php if ($preview !== ''): ?>
         <div class="pad-list-preview"><?= $this->escape($preview) ?></div>
