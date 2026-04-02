@@ -45,3 +45,7 @@ if (strpos($_reqUri, '/ep/') !== 0 && $_reqUri !== '/robots.txt') {
         }
     }
 }
+
+// Pre-load user's accessible domains for the nav dropdown (available as $GLOBALS['_userDomains'])
+$_sessionEmail = MiniEngine::getSession('user_email');
+$GLOBALS['_userDomains'] = $_sessionEmail ? HackpadHelper::getUserDomains($_sessionEmail) : [];

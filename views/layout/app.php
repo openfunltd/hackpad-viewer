@@ -13,8 +13,21 @@
     <a class="site-name" href="/"><?= $this->escape($this->domain['orgName'] ?? 'Hackpad') ?></a>
     <nav class="header-nav">
       <?php if ($this->user): ?>
-        <span class="user-name"><?= $this->escape($this->user['fullName']) ?></span>
-        <a href="/ep/account/sign-out">登出</a>
+        <div class="user-menu">
+          <span class="user-name"><?= $this->escape($this->user['fullName']) ?> ▾</span>
+          <div class="user-dropdown">
+            <?php foreach ($GLOBALS['_userDomains'] as $wd): ?>
+              <a href="<?= $this->escape(HackpadHelper::getDomainUrl($wd['subDomain'])) ?>">
+                <?= $this->escape($wd['orgName'] ?: $wd['subDomain']) ?>
+              </a>
+            <?php endforeach; ?>
+            <?php if (empty($GLOBALS['_userDomains'])): ?>
+              <span class="user-dropdown-empty">無可存取的 workspace</span>
+            <?php endif; ?>
+            <div class="user-dropdown-divider"></div>
+            <a href="/ep/account/sign-out">登出</a>
+          </div>
+        </div>
       <?php else: ?>
         <a href="/ep/account/sign-in">登入</a>
       <?php endif; ?>

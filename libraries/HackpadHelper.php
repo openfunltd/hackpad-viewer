@@ -76,6 +76,36 @@ class HackpadHelper
     }
 
     /**
+     * Build the full URL for a subdomain workspace.
+     * e.g. "g0v" → "https://g0v.hackpad.tw" (prod) or "https://g0v-hackpad.ronny-test.openfun.dev" (test)
+     */
+    public static function getDomainUrl(string $subDomain): string
+    {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $suffix = getenv('HACKPAD_PRIMARY_DOMAIN') ?: '.hackpad.tw';
+        return $scheme . '://' . $subDomain . $suffix;
+    }
+
+    /**
+     * Get all workspace domains the given email has an account in,
+     * excluding the main private-network domain.
+     */
+    public static function getUserDomains(string $email): array
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare('
+            SELECT d.id, d.subDomain, d.orgName
+            FROM pro_accounts a
+            JOIN pro_domains d ON d.id = a.domainId
+            WHERE a.email = ? AND a.isDeleted = 0 AND d.isDeleted = 0
+              AND d.subDomain != \'<<private-network>>\'
+            ORDER BY d.subDomain
+        ');
+        $stmt->execute([strtolower(trim($email))]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
      * Extract local pad ID from a URL path.
      * Handles both "/LocalPadId" and "/Title-With-Dashes-LocalPadId" formats.
      * In hackpad, pad IDs are 11-char alphanumeric strings.
