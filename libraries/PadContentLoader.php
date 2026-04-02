@@ -245,6 +245,47 @@ class PadContentLoader
     }
 
     /**
+     * Return contributors for a pad as an array of ['name', 'color'].
+     * Derived from the attribute pool (all author entries).
+     */
+    public static function getPadContributors(string $globalPadId): array
+    {
+        $numToAttrib = self::getApool($globalPadId);
+        $authorInfo  = self::buildAuthorInfo($numToAttrib);
+        return array_values($authorInfo);
+    }
+
+    /**
+     * Add id="toc-N" anchors to h1/h2/h3 tags in HTML, and return the
+     * table of contents as [['level'=>int, 'text'=>string, 'id'=>string], ...].
+     * The $html string is modified in-place.
+     */
+    public static function addHeadingIds(string &$html): array
+    {
+        $toc = [];
+        $i   = 0;
+        $html = preg_replace_callback(
+            '/<(h[123])([^>]*)>(.*?)<\/h[123]>/is',
+            function ($m) use (&$toc, &$i) {
+                $tag   = $m[1];
+                $attrs = $m[2];
+                $inner = $m[3];
+                $id    = 'toc-' . $i++;
+                $level = (int) $tag[1];
+                // Remove .line-author spans (author gutter) before extracting plain text
+                $textHtml = preg_replace('/<span[^>]+class="line-author"[^>]*>.*?<\/span>/is', '', $inner);
+                $text     = trim(strip_tags($textHtml));
+                if ($text !== '') {
+                    $toc[] = ['level' => $level, 'text' => $text, 'id' => $id];
+                }
+                return "<{$tag}{$attrs} id=\"{$id}\">{$inner}</{$tag}>";
+            },
+            $html
+        );
+        return $toc;
+    }
+
+    /**
      * Read PAD_META JSON for a global pad ID.
      * Returns ['head', 'keyRevInterval', ...] or null.
      */

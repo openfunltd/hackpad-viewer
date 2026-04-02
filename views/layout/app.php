@@ -48,7 +48,35 @@
     <div class="page-content">
     <?= $this->yield('content') ?>
     </div>
-    <?php if (!empty($this->members) || !empty($this->collections)): ?>
+    <?php if (!empty($this->padContributors) || !empty($this->padToc)): ?>
+    <aside class="sidebar">
+      <?php if (!empty($this->padContributors)): ?>
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">參與者</h3>
+        <ul class="sidebar-list sidebar-contributors">
+          <?php foreach ($this->padContributors as $c): ?>
+          <li>
+            <span class="contributor-dot" style="background:<?= $this->escape($c['color']) ?>"></span>
+            <?= $this->escape($c['name']) ?>
+          </li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
+      <?php if (!empty($this->padToc)): ?>
+      <section class="sidebar-section">
+        <h3 class="sidebar-heading">目錄</h3>
+        <ul class="sidebar-toc">
+          <?php foreach ($this->padToc as $item): ?>
+          <li class="toc-level-<?= (int)$item['level'] ?>">
+            <a href="#<?= $this->escape($item['id']) ?>"><?= $this->escape($item['text']) ?></a>
+          </li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
+    </aside>
+    <?php elseif (!empty($this->members) || !empty($this->collections)): ?>
     <aside class="sidebar">
       <?php if (!empty($this->members)): ?>
       <section class="sidebar-section">

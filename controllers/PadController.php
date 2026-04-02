@@ -6,11 +6,9 @@ class PadController extends MiniEngine_Controller
         $this->view->domain         = HackpadHelper::getCurrentDomain();
         $this->view->user           = HackpadHelper::getCurrentUser();
         $this->view->wideContainer  = true;
-        $domainId = $this->view->domain['id'] ?? null;
-        if ($domainId) {
-            $this->view->members     = HackpadHelper::getDomainMembers($domainId);
-            $this->view->collections = HackpadHelper::getDomainCollections($domainId);
-        }
+        // Pad pages use a pad-specific sidebar; clear domain-level members/collections
+        $this->view->members     = [];
+        $this->view->collections = [];
     }
 
     /**
@@ -52,13 +50,20 @@ class PadController extends MiniEngine_Controller
             return $this->notfound('Pad not found.');
         }
 
-        // Render pad content
-        $content = PadContentLoader::renderPad($domainId, $localPadId);
+        // Render pad content and extract TOC + contributors
+        $content      = PadContentLoader::renderPad($domainId, $localPadId);
+        $padToc       = [];
+        if ($content !== false && $content !== '') {
+            $padToc = PadContentLoader::addHeadingIds($content);
+        }
+        $globalPadId2 = $domainId . '$' . $localPadId;
 
         $this->view->padMeta        = $padMeta;
         $this->view->content        = $content;
         $this->view->padCollections = HackpadHelper::getPadCollections($globalPadId);
         $this->view->padTitle       = $padMeta['title'] ?: $localPadId;
+        $this->view->padToc         = $padToc;
+        $this->view->padContributors = PadContentLoader::getPadContributors($globalPadId);
     }
 
     /** Show revision history for a pad. */
