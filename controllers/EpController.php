@@ -63,8 +63,11 @@ class EpController extends MiniEngine_Controller
             return $this->redirect('/ep/account/sign-in?error=auth_failed');
         }
 
+        // Apply EMAIL_ALIASES mapping (format: "google@a.com:hackpad@b.com,...")
+        $lookupEmail = self::resolveEmailAlias($userInfo['email']);
+
         // Look up user in hackpad's pro_accounts
-        $account = HackpadHelper::findUserByEmail($userInfo['email']);
+        $account = HackpadHelper::findUserByEmail($lookupEmail);
 
         if (!$account) {
             // User has a Google account but no hackpad account
@@ -100,5 +103,23 @@ class EpController extends MiniEngine_Controller
         $state    = GoogleOAuth::generateState($cont);
         $authUrl  = GoogleOAuth::buildAuthUrl(GoogleOAuth::getCallbackUrl(), $state);
         return $this->redirect($authUrl);
+    }
+
+    /**
+     * Resolve a Google login email to a hackpad email via EMAIL_ALIASES.
+     * Config format (in config.inc.php):
+     *   putenv('EMAIL_ALIASES=google@example.com:hackpad@example.com,...');
+     */
+    private static function resolveEmailAlias(string $email): string
+    {
+        $raw = getenv('EMAIL_ALIASES');
+        if (!$raw) return $email;
+        foreach (explode(',', $raw) as $pair) {
+            [$from, $to] = array_pad(explode(':', trim($pair), 2), 2, '');
+            if ($to && strtolower($from) === strtolower($email)) {
+                return $to;
+            }
+        }
+        return $email;
     }
 }

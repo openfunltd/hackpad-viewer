@@ -21,3 +21,7 @@ putenv('GOOGLE_CLIENT_SECRET=your-client-secret');
 
 // Set to "production" to suppress error details and enable 404/500 responses
 putenv('ENV=production');
+
+// Optional: map Google login emails to hackpad emails (for testing / workarounds).
+// Format: comma-separated "google_email:hackpad_email" pairs.
+// putenv('EMAIL_ALIASES=you@gmail.com:you@company.com');
