@@ -92,7 +92,14 @@ class IndexController extends MiniEngine_Controller
     public function robotsAction()
     {
         header('Content-Type: text/plain');
-        echo "User-agent: *\nDisallow: /\n";
+        echo implode("\n", [
+            'User-agent: *',
+            'Disallow: /ep/',
+            'Disallow: /admin/',
+            'Disallow: /search',
+            'Allow: /',
+            '',
+        ]);
         return $this->noview();
     }
 }
