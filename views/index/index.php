@@ -21,6 +21,17 @@ $this->yield_start('content');
       </li>
     <?php endforeach; ?>
   </ul>
+  <?php if ($this->totalPages > 1): ?>
+  <nav class="pagination">
+    <?php if ($this->page > 1): ?>
+      <a class="page-btn" href="?page=<?= $this->page - 1 ?>">← 上一頁</a>
+    <?php endif; ?>
+    <span class="page-info"><?= $this->page ?> / <?= $this->totalPages ?></span>
+    <?php if ($this->page < $this->totalPages): ?>
+      <a class="page-btn" href="?page=<?= $this->page + 1 ?>">下一頁 →</a>
+    <?php endif; ?>
+  </nav>
+  <?php endif; ?>
 <?php endif; ?>
 <?php
 $this->yield_end();

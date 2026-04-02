@@ -12,6 +12,8 @@ class IndexController extends MiniEngine_Controller
         }
     }
 
+    const PER_PAGE = 50;
+
     public function indexAction()
     {
         $domain = $this->view->domain;
@@ -20,17 +22,22 @@ class IndexController extends MiniEngine_Controller
         }
         $domainId = $domain['id'];
 
-        $db = MiniEngine::getDb();
-
+        $db   = MiniEngine::getDb();
         $user = $this->view->user;
 
-        if ($user) {
-            // Logged-in: show allow/link/domain pads
-            $guestPolicies = "('allow','link','domain')";
-        } else {
-            // Public: only publicly accessible pads
-            $guestPolicies = "('allow','link')";
-        }
+        $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
+
+        $page   = max(1, (int)($_GET['page'] ?? 1));
+        $offset = ($page - 1) * self::PER_PAGE;
+
+        $stmt = $db->prepare(
+            "SELECT COUNT(*) FROM pro_padmeta pm
+             JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
+             WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
+               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}"
+        );
+        $stmt->execute([$domainId]);
+        $total = (int) $stmt->fetchColumn();
 
         $stmt = $db->prepare(
             "SELECT pm.localPadId, pm.title, pm.createdDate, pm.lastEditedDate,
@@ -40,10 +47,13 @@ class IndexController extends MiniEngine_Controller
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
                AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}
              ORDER BY pm.lastEditedDate DESC
-             LIMIT 100"
+             LIMIT " . self::PER_PAGE . " OFFSET " . $offset
         );
         $stmt->execute([$domainId]);
-        $this->view->pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $this->view->pads       = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->view->page       = $page;
+        $this->view->totalPages = (int) ceil($total / self::PER_PAGE);
     }
 
     public function robotsAction()

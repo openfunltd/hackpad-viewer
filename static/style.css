@@ -193,3 +193,23 @@ main.container { padding-top: 2rem; padding-bottom: 3rem; }
   .page-layout { flex-direction: column; }
   .sidebar { width: 100%; }
 }
+
+/* ── Pagination ── */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #eee;
+}
+.page-btn {
+  padding: 0.35rem 0.8rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  color: #444;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.page-btn:hover { background: #f5f5f5; text-decoration: none; }
+.page-info { font-size: 0.85rem; color: #999; }
