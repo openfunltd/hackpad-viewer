@@ -204,7 +204,7 @@ hackpad-viewer/
 
 ## 目前進度（完成 / 待做）
 
-> 最後更新：2026-04-02（17:51）
+> 最後更新：2026-04-02（18:00）
 
 ### ✅ 已完成
 
@@ -243,6 +243,9 @@ hackpad-viewer/
 #### Git commits（本 session）
 | Commit | 說明 |
 |--------|------|
+| `91ae143` | 修正 profile 頁名稱 HTML entity 未解碼（__get 回傳值拷貝問題）|
+| `eb3364b` | Profile 頁 fullName html_entity_decode（初版，有 __get 拷貝問題）|
+| `7645eef` | 文章頁 sidebar 參與者連結到 profile 頁；getPadContributors 加入 id 欄位 |
 | `d920d67` | 連續同作者內文行只顯示第一行標示 |
 | `2b98906` | 文章頁 sidebar 改為參與者列表＋目錄（TOC） |
 | `68d6e42` | robots.txt 放寬，允許公開頁面被搜尋引擎索引 |
@@ -267,10 +270,12 @@ hackpad-viewer/
 
 ### 🔲 待完成 / 已知問題
 
-- **Collection 頁**：`/collection/{groupId}` 路由存在但 CollectionController 尚未完整實作
-- **Profile 頁**：`/ep/profile/{id}` 尚未實作
 - **Collection URL 原始格式**：原始 hackpad 用 `/ep/group/{token}`，token 不在 DB 中，待研究 whackpad source
-- **Sidebar**：Members / Collections sidebar 目前僅部分子頁面有實作，尚未統一
+- **Sidebar 統一化**：Members / Collections sidebar 目前僅列表頁有
+
+### ⚠️ 重要技術注意事項
+
+- **mini-engine `__get` 回傳值拷貝**：`$this->view->prop['key'] = value` 無效（修改的是臨時拷貝），必須先修改陣列再整體賦值：`$arr['key'] = value; $this->view->prop = $arr;`
 
 ---
 
