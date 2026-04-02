@@ -47,6 +47,7 @@ class ProfileController extends MiniEngine_Controller
         $stmt->execute([$domainId, $userId]);
 
         $this->view->member = $member;
+        $this->view->member['fullName'] = html_entity_decode($member['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $this->view->pads   = $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
