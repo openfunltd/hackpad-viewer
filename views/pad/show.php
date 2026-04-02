@@ -15,6 +15,13 @@ $this->yield_start('content');
       <?php if ($this->padMeta['createdDate']): ?>
         <span class="pad-date">建立：<?= $this->escape(HackpadHelper::formatDate($this->padMeta['createdDate'])) ?></span>
       <?php endif; ?>
+      <?php if (!empty($this->padCollections)): ?>
+        <div class="pad-collections">
+          <?php foreach ($this->padCollections as $c): ?>
+            <a class="pad-collection-tag" href="/collection/<?= (int)$c['groupId'] ?>"><?= $this->escape($c['name']) ?></a>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
     </div>
   </header>
   <div class="pad-content">

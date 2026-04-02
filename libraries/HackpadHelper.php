@@ -221,4 +221,19 @@ class HackpadHelper
         $stmt->execute([$domainId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Get public collections that a pad belongs to.
+     */
+    public static function getPadCollections(string $globalPadId): array
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT g.groupId, g.name FROM pad_access pa
+             JOIN pro_groups g ON g.groupId = pa.groupId AND g.isDeleted = 0
+             WHERE pa.globalPadId = ? AND pa.isRevoked = 0 AND g.isPublic = 1'
+        );
+        $stmt->execute([$globalPadId]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }

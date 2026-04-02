@@ -54,8 +54,9 @@ class PadController extends MiniEngine_Controller
         // Render pad content
         $content = PadContentLoader::renderPad($domainId, $localPadId);
 
-        $this->view->padMeta  = $padMeta;
-        $this->view->content  = $content;
+        $this->view->padMeta       = $padMeta;
+        $this->view->content       = $content;
+        $this->view->padCollections = HackpadHelper::getPadCollections($globalPadId);
         $this->view->padTitle = $padMeta['title'] ?: $localPadId;
     }
 }
