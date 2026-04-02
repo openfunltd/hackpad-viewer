@@ -59,6 +59,23 @@ class HackpadHelper
     }
 
     /**
+     * Check whether a domain is publicly accessible (no login required).
+     * Reads the 'publicDomain' key from pro_config; defaults to true if absent.
+     */
+    public static function isDomainPublic(int $domainId): bool
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            "SELECT jsonVal FROM pro_config WHERE domainId = ? AND name = 'publicDomain' LIMIT 1"
+        );
+        $stmt->execute([$domainId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return true;
+        $val = json_decode($row['jsonVal'], true);
+        return !empty($val['x']);
+    }
+
+    /**
      * Extract local pad ID from a URL path.
      * Handles both "/LocalPadId" and "/Title-With-Dashes-LocalPadId" formats.
      * In hackpad, pad IDs are 11-char alphanumeric strings.

@@ -18,3 +18,16 @@ MiniEngine::initEnv();
 if (getenv('DATABASE_URL')) {
     MiniEngine::getDb()->exec('SET NAMES utf8mb4');
 }
+
+// Private domains require authentication.
+// Allow /ep/* (sign-in, OAuth callback) and /robots.txt through without login.
+$_reqUri = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
+if (strpos($_reqUri, '/ep/') !== 0 && $_reqUri !== '/robots.txt') {
+    $_domain = HackpadHelper::getCurrentDomain();
+    if ($_domain && !HackpadHelper::isDomainPublic((int)$_domain['id'])
+        && !MiniEngine::getSession('user_id')
+    ) {
+        header('Location: /ep/account/sign-in?cont=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'));
+        exit;
+    }
+}
