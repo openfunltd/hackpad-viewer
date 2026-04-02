@@ -16,6 +16,11 @@
         <div class="user-menu">
           <span class="user-name"><?= $this->escape($this->user['fullName']) ?> ▾</span>
           <div class="user-dropdown">
+            <?php if ($GLOBALS['_isSiteAdmin']): ?>
+              <div class="user-dropdown-section">Admin</div>
+              <a href="/admin">⚙ Admin Panel</a>
+              <div class="user-dropdown-divider"></div>
+            <?php endif; ?>
             <?php foreach ($GLOBALS['_userDomains'] as $wd): ?>
               <a href="<?= $this->escape(HackpadHelper::getDomainUrl($wd['subDomain'])) ?>">
                 <?= $this->escape($wd['orgName'] ?: $wd['subDomain']) ?>

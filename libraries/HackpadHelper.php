@@ -76,6 +76,20 @@ class HackpadHelper
     }
 
     /**
+     * Check if the given email is a site-wide admin
+     * (has isAdmin=1 in the main <<private-network>> domain, id=1).
+     */
+    public static function isSiteAdmin(string $email): bool
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT id FROM pro_accounts WHERE email = ? AND domainId = 1 AND isAdmin = 1 AND isDeleted = 0 LIMIT 1'
+        );
+        $stmt->execute([strtolower(trim($email))]);
+        return (bool) $stmt->fetch();
+    }
+
+    /**
      * Build the full URL for a subdomain workspace.
      * e.g. "g0v" → "https://g0v.hackpad.tw" (prod) or "https://g0v-hackpad.ronny-test.openfun.dev" (test)
      */

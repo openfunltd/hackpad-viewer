@@ -13,6 +13,9 @@ MiniEngine::dispatch(function($uri){
     if (preg_match('#^/ep/profile/(\d+)$#', $uri, $m)) {
         return ['profile', 'show', [(int)$m[1]]];
     }
+    if ($uri === '/admin')          return ['admin', 'index'];
+    if ($uri === '/admin/domains')  return ['admin', 'domains'];
+    if ($uri === '/admin/users')    return ['admin', 'users'];
     // /ep/* routes (login, logout, OAuth callback)
     if ($uri === '/ep/account/sign-in')    return ['ep', 'accountSignIn'];
     if ($uri === '/ep/account/sign-out')   return ['ep', 'accountSignOut'];
