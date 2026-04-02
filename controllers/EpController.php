@@ -76,10 +76,18 @@ class EpController extends MiniEngine_Controller
         // Store user in session
         MiniEngine::setSession('user_id',    $account['id']);
         MiniEngine::setSession('user_email', $account['email']);
-        MiniEngine::setSession('user_name',  $account['fullName']);
+        MiniEngine::setSession('user_name',  html_entity_decode($account['fullName'], ENT_QUOTES, 'UTF-8'));
 
-        // If returnTo is on a specific subdomain (encoded in state), redirect there
-        // Otherwise redirect to current domain
+        // Validate returnTo to prevent open redirect.
+        // Accept absolute URLs only if they belong to our session domain.
+        $sessionDomain = ltrim(getenv('SESSION_DOMAIN') ?: '', '.');
+        if ($sessionDomain && strpos($returnTo, '://') !== false) {
+            $host = parse_url($returnTo, PHP_URL_HOST);
+            if (!$host || !str_ends_with($host, $sessionDomain)) {
+                $returnTo = '/'; // Reject external URLs
+            }
+        }
+
         return $this->redirect($returnTo);
     }
 

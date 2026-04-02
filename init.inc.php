@@ -27,7 +27,9 @@ if (strpos($_reqUri, '/ep/') !== 0 && $_reqUri !== '/robots.txt') {
     if ($_domain && !HackpadHelper::isDomainPublic((int)$_domain['id'])
         && !MiniEngine::getSession('user_id')
     ) {
-        header('Location: /ep/account/sign-in?cont=' . urlencode($_SERVER['REQUEST_URI'] ?? '/'));
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $fullUrl = $scheme . '://' . $_SERVER['HTTP_HOST'] . ($_SERVER['REQUEST_URI'] ?? '/');
+        header('Location: /ep/account/sign-in?cont=' . urlencode($fullUrl));
         exit;
     }
 }
