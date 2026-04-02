@@ -395,3 +395,5 @@ details summary { cursor: pointer; font-size: 0.82rem; color: #2563eb; }
 .diff-del  { background: #fef2f2; color: #991b1b; white-space: pre-wrap; padding: 0 0.5rem; }
 .diff-ctx  { color: #6b7280; white-space: pre-wrap; padding: 0 0.5rem; }
 .diff-skip { color: #9ca3af; padding: 0 0.5rem; font-style: italic; }
+.welcome-operator { margin-top: 1.5rem; font-size: 0.85rem; color: #aaa; }
+.welcome-operator a { color: #888; }

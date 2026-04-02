@@ -100,6 +100,10 @@ hackpad-viewer/
 └── config.inc.php      # 本地設定（不納入版控）
 ```
 
+## 維運
+
+本站目前由 [歐噴有限公司 openfun.tw](https://openfun.tw) 維運。
+
 ## License
 
 BSD 3-Clause License — Copyright (c) 2026, openfun.tw 歐噴有限公司。詳見 [LICENSE](LICENSE)。

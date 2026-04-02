@@ -16,6 +16,7 @@ $this->yield_start('content');
     各工作區的文章依原始權限設定保存：公開文章可直接瀏覽，私有工作區的文章需以原 Hackpad 帳號登入才能查看。
   </p>
   <a class="btn-primary" href="/ep/account/sign-in">登入查看我的文章</a>
+  <p class="welcome-operator">本站由 <a href="https://openfun.tw" target="_blank">歐噴有限公司 openfun.tw</a> 維運</p>
 </div>
 <?php else: ?>
 <h2 class="page-heading">

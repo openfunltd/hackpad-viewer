@@ -75,7 +75,7 @@
 </main>
 <footer class="site-footer">
   <div class="container">
-    <p>Hackpad Viewer &mdash; 唯讀模式</p>
+    <p>Hackpad Viewer &mdash; 唯讀模式 &mdash; 由 <a href="https://openfun.tw" target="_blank">歐噴有限公司 openfun.tw</a> 維運</p>
   </div>
 </footer>
 </body>
