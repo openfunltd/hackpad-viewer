@@ -35,7 +35,7 @@ class CollectionController extends MiniEngine_Controller
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
 
         $stmt = $db->prepare(
-            "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy
+            "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy, ps.headRev
              FROM pad_access pa
              JOIN pro_padmeta pm
                ON pa.globalPadId = CONCAT(pm.domainId, '\$', pm.localPadId)
@@ -47,7 +47,9 @@ class CollectionController extends MiniEngine_Controller
         );
         $stmt->execute([$domainId, $groupId]);
 
+        $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->view->collection = $collection;
-        $this->view->pads       = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $this->view->pads       = $pads;
+        $this->view->previews   = PadContentLoader::getPadTextPreviews($pads, $domainId, 5);
     }
 }
