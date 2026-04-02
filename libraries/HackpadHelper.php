@@ -173,21 +173,28 @@ class HackpadHelper
         if (!$userId) return false;
 
         if ($policy === 'domain') {
-            // Check user is a member of this domain
-            $stmt2 = $db->prepare(
-                'SELECT id FROM pro_accounts WHERE id = ? AND domainId = ? AND isDeleted = 0'
-            );
-            $stmt2->execute([$userId, $domainId]);
-            return (bool) $stmt2->fetch(PDO::FETCH_ASSOC);
+            // Check user is a member of this domain by email
+            // (the same person has different account IDs in different domains)
+            $email = MiniEngine::getSession('user_email');
+            if (!$email) return false;
+            return self::isEmailDomainMember($email, $domainId);
         }
 
         if ($policy === 'deny') {
-            // Check explicit pad_access grant
+            // Check explicit pad_access grant using the domain-specific userId
+            $email = MiniEngine::getSession('user_email');
+            if (!$email) return false;
             $stmt2 = $db->prepare(
+                'SELECT a.id FROM pro_accounts a WHERE a.email = ? AND a.domainId = ? AND a.isDeleted = 0 LIMIT 1'
+            );
+            $stmt2->execute([$email, $domainId]);
+            $acc = $stmt2->fetch(PDO::FETCH_ASSOC);
+            if (!$acc) return false;
+            $stmt3 = $db->prepare(
                 'SELECT 1 FROM pad_access WHERE globalPadId = ? AND userId = ? AND isRevoked = 0'
             );
-            $stmt2->execute([$globalPadId, $userId]);
-            return (bool) $stmt2->fetch(PDO::FETCH_ASSOC);
+            $stmt3->execute([$globalPadId, $acc['id']]);
+            return (bool) $stmt3->fetch(PDO::FETCH_ASSOC);
         }
 
         return false;
