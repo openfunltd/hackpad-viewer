@@ -151,14 +151,14 @@ class PadContentLoader
         }
 
         $offsets = array_map('intval', explode(',', $row['OFFSETS']));
-        $offset  = 0;
+        $charPos = 0;  // OFFSETS stores char counts, not byte lengths
         for ($i = 0; $i < $indexInPage && $i < count($offsets); $i++) {
-            $offset += $offsets[$i];
+            $charPos += $offsets[$i];
         }
         $len = $offsets[$indexInPage] ?? 0;
         if ($len === 0) return null;
 
-        $json = substr($row['DATA'], $offset, $len);
+        $json = mb_substr($row['DATA'], $charPos, $len, 'UTF-8');
         $data = json_decode($json, true);
         return $data['atext'] ?? null;
     }
@@ -215,16 +215,16 @@ class PadContentLoader
             $pageStart = (int) $page['PAGESTART'];
             $offsets   = array_map('intval', explode(',', $page['OFFSETS']));
             $data      = $page['DATA'];
-            $bytePos   = 0;
+            $charPos   = 0;  // OFFSETS stores char counts, not byte lengths
 
             for ($i = 0; $i < count($offsets); $i++) {
                 $rev = $pageStart + $i;
                 $len = $offsets[$i];
-                if ($len === 0) { $bytePos += $len; continue; }
+                if ($len === 0) { $charPos += $len; continue; }
                 if ($rev >= $from && $rev <= $to) {
-                    $changesets[$rev] = substr($data, $bytePos, $len);
+                    $changesets[$rev] = mb_substr($data, $charPos, $len, 'UTF-8');
                 }
-                $bytePos += $len;
+                $charPos += $len;
             }
         }
 
