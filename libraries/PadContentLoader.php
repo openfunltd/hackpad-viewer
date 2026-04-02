@@ -213,6 +213,7 @@ class PadContentLoader
             $name  = html_entity_decode($row['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
             $color = self::$AUTHOR_COLORS[$row['id'] % $n];
             $map['p.' . $row['id']] = [
+                'id'    => (int) $row['id'],
                 'name'  => $name ?: $row['email'],
                 'color' => $color,
             ];

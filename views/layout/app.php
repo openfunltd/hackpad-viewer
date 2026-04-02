@@ -57,7 +57,7 @@
           <?php foreach ($this->padContributors as $c): ?>
           <li>
             <span class="contributor-dot" style="background:<?= $this->escape($c['color']) ?>"></span>
-            <?= $this->escape($c['name']) ?>
+            <a href="/ep/profile/<?= (int)$c['id'] ?>"><?= $this->escape($c['name']) ?></a>
           </li>
           <?php endforeach; ?>
         </ul>
