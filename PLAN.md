@@ -204,14 +204,14 @@ hackpad-viewer/
 
 ## 目前進度（完成 / 待做）
 
-> 最後更新：2026-04-02（17:37）
+> 最後更新：2026-04-02（17:51）
 
 ### ✅ 已完成
 
 #### 核心框架 & 資料存取
 - `mini-engine.php` 框架整合
-- `libraries/Easysync.php`：完整的 Easysync2 changeset 解析、套用、atext→HTML 轉換；含 per-line author gutter、comment author 顯示
-- `libraries/PadContentLoader.php`：從 MySQL key revision 載入 atext，套用剩餘 changesets，渲染 HTML；含歷史紀錄 diff（LCS 演算法、context collapse、1 小時內同人合併）；含 `getPadTextPreviews()`（批次取預覽文字，OFFSETS 以字元數計，需 mb_substr）
+- `libraries/Easysync.php`：完整的 Easysync2 changeset 解析、套用、atext→HTML 轉換；含 per-line author gutter、comment author 顯示；連續同作者的行只顯示第一行標示，heading 後重置
+- `libraries/PadContentLoader.php`：從 MySQL key revision 載入 atext，套用剩餘 changesets，渲染 HTML；含歷史紀錄 diff（LCS 演算法、context collapse、1 小時內同人合併）；含 `getPadTextPreviews()`（批次取預覽文字）；`getPadContributors()`（從 apool 取參與者）；`addHeadingIds()`（注入 TOC anchor id，濾除 line-author 文字）
 - `libraries/HackpadHelper.php`：subdomain 解析、domain 查詢、pad 權限檢查（email-based 跨 domain）、使用者查詢、getUserDomains、getDomainUrl、isSiteAdmin
 - `libraries/GoogleOAuth.php`：Google OAuth2 完整流程（auth URL、code exchange、state 驗證）
 - `libraries/Elastic.php`：Elasticsearch client（使用者提供）
@@ -219,7 +219,7 @@ hackpad-viewer/
 #### 頁面 & 路由
 - `controllers/IndexController.php`：首頁 pad 列表；主網域登入後顯示「我的 Pads」，未登入顯示歡迎說明頁；每篇 pad 顯示第 2–6 行預覽文字及創作者姓名
 - `controllers/CollectionController.php`：Collection 文章列表；顯示預覽文字及創作者姓名
-- `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）+ `/{padSlug}/history` 歷史紀錄頁
+- `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）+ `/{padSlug}/history` 歷史紀錄頁；傳入 `padContributors`、`padToc` 給 sidebar
 - `controllers/EpController.php`：登入/登出/Google OAuth callback；EMAIL_ALIASES 支援；open redirect 防護
 - `controllers/AdminController.php`：Site admin 面板（/admin/domains, /admin/users），僅 isAdmin=1 可存取
 - `controllers/SearchController.php`：Elasticsearch 搜尋（/search?q=...），依 domainId + guestPolicy 過濾，分頁
@@ -230,9 +230,9 @@ hackpad-viewer/
 - 主網域 / 子網域 / 私有 domain / 公開 pad 的存取矩陣已全部實作並驗證
 
 #### UI
-- `views/layout/app.php`：主版型；header 搜尋框；user dropdown（workspace 清單 + admin 連結）；footer 含 openfun.tw 維運說明 + GitHub 開源連結
-- `views/index/index.php`：pad 列表（含欄位排序、最後編輯日期、創作者姓名、預覽文字）；未登入主網域顯示歡迎頁
-- `views/collection/show.php`：Collection 文章列表（含日期、創作者姓名、預覽文字）
+- `views/layout/app.php`：主版型；header 搜尋框；user dropdown（workspace 清單 + admin 連結）；footer 含 openfun.tw 維運說明 + GitHub 開源連結；sidebar 支援兩種模式：文章頁（參與者＋目錄）/ 列表頁（Members＋Collections）
+- `views/index/index.php`：pad 列表（含欄位排序、最後編輯日期、創作者姓名、private 標籤、預覽文字）；未登入主網域顯示歡迎頁
+- `views/collection/show.php`：Collection 文章列表（含日期、創作者姓名、private 標籤、預覽文字）
 - `views/pad/show.php`：pad 閱讀頁；per-line author gutter（白框外左側）
 - `views/pad/history.php`：歷史紀錄頁；每個 session 的 diff（新增綠色/刪除紅色，預設全展開）
 - `views/admin/`：index.php、domains.php、users.php
@@ -243,6 +243,10 @@ hackpad-viewer/
 #### Git commits（本 session）
 | Commit | 說明 |
 |--------|------|
+| `d920d67` | 連續同作者內文行只顯示第一行標示 |
+| `2b98906` | 文章頁 sidebar 改為參與者列表＋目錄（TOC） |
+| `68d6e42` | robots.txt 放寬，允許公開頁面被搜尋引擎索引 |
+| `ef0a5b3` | 文章列表 private 標籤（domain/deny 類型） |
 | `cf4a7d1` | 文章列表（首頁 + Collection）顯示創作者姓名 |
 | `6fbd523` | Collection 頁加入預覽文字 |
 | `3176dff` | 預覽修正：略過標題行、顯示第 2–6 行；headRev<100 偵測範本並套用 changesets |
