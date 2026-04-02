@@ -289,7 +289,7 @@ class Easysync
      * Convert runs to HTML, using the attribute pool.
      * $numToAttrib: array mapping attrNum => [key, value]
      */
-    public static function runsToHtml(array $runs, array $numToAttrib): string
+    public static function runsToHtml(array $runs, array $numToAttrib, array $authorNames = []): string
     {
         // Split runs into lines
         $lines = self::splitRunsIntoLines($runs);
@@ -309,10 +309,24 @@ class Easysync
                     $pair = $numToAttrib[$an] ?? null;
                     if (!$pair) continue;
                     if ($pair[0] === 'list' && $pair[1] !== '') {
-                        // e.g. "bullet1", "number2", "hone1", "htwo1", "task1", "code1", "indent1"
+                        // e.g. "bullet1", "number2", "hone1", "htwo1", "task1", "code1", "indent1", "comment1"
                         if (preg_match('/^(.*?)(\d+)$/', $pair[1], $lm)) {
                             $lineType  = $lm[1];
                             $lineLevel = intval($lm[2]);
+                        }
+                    }
+                }
+            }
+
+            // For comment lines, find the author of the first text run
+            $lineAuthor = '';
+            if ($lineType === 'comment' && !empty($authorNames)) {
+                foreach ($lineRuns as $run) {
+                    foreach ($run['a'] as $an) {
+                        $pair = $numToAttrib[$an] ?? null;
+                        if ($pair && $pair[0] === 'author' && isset($authorNames[$pair[1]])) {
+                            $lineAuthor = $authorNames[$pair[1]];
+                            break 2;
                         }
                     }
                 }
@@ -328,6 +342,13 @@ class Easysync
                 $html .= '<h2>' . $lineHtml . '</h2>' . "\n";
             } elseif ($lineType === 'htwo') {
                 $html .= '<h3>' . $lineHtml . '</h3>' . "\n";
+            } elseif ($lineType === 'comment') {
+                $indent = max(0, $lineLevel - 1);
+                $style  = $indent > 0 ? ' style="margin-left:' . ($indent * 1.5) . 'rem"' : '';
+                $authorHtml = $lineAuthor
+                    ? '<span class="comment-author">' . htmlspecialchars($lineAuthor, ENT_QUOTES, 'UTF-8') . '</span>'
+                    : '';
+                $html .= '<div class="pad-comment"' . $style . '>' . $authorHtml . $lineHtml . '</div>' . "\n";
             } elseif (in_array($lineType, ['bullet', 'number', 'task', 'taskdone', 'code', 'indent'])) {
                 $tag = ($lineType === 'number') ? 'ol' : 'ul';
                 if (empty($listStack) || $listStack[count($listStack) - 1]['type'] !== $lineType

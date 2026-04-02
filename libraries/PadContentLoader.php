@@ -60,10 +60,39 @@ class PadContentLoader
         // 6. Remove title line (first line) since we display it separately
         $runs = self::skipTitleLine($runs);
 
-        // 7. Render to HTML
-        $html = Easysync::runsToHtml($runs, $numToAttrib);
+        // 7. Build author name map from apool (author: p.{id} -> fullName)
+        $authorNames = self::buildAuthorNames($numToAttrib);
+
+        // 8. Render to HTML
+        $html = Easysync::runsToHtml($runs, $numToAttrib, $authorNames);
 
         return $html;
+    }
+
+    /**
+     * Build a map from author attribute value (e.g. "p.27229") to display name.
+     */
+    private static function buildAuthorNames(array $numToAttrib): array
+    {
+        $ids = [];
+        foreach ($numToAttrib as $pair) {
+            if ($pair[0] === 'author' && str_starts_with($pair[1], 'p.')) {
+                $ids[] = (int) substr($pair[1], 2);
+            }
+        }
+        if (empty($ids)) return [];
+
+        $db      = MiniEngine::getDb();
+        $in      = implode(',', $ids);
+        $stmt    = $db->query(
+            "SELECT id, fullName, email FROM pro_accounts WHERE id IN ($in)"
+        );
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $name = html_entity_decode($row['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $map['p.' . $row['id']] = $name ?: $row['email'];
+        }
+        return $map;
     }
 
     /**
