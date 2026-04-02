@@ -10,7 +10,9 @@ putenv('SESSION_SECRET=replace_with_random_secret');
 putenv('SESSION_DOMAIN=.hackpad.tw');
 
 // The primary domain (without leading dot) used for subdomain detection and OAuth callback
-putenv('HACKPAD_PRIMARY_DOMAIN=hackpad.tw');
+// The separator + primary domain. Use "." for subdomain (e.g. ".hackpad.tw"),
+// or "-" for dash-separated testing environments (e.g. "-testingdomain.tw").
+putenv('HACKPAD_PRIMARY_DOMAIN=.hackpad.tw');
 
 // Google OAuth2 credentials (from Google Cloud Console)
 // Redirect URI must be set to: https://hackpad.tw/ep/account/openid

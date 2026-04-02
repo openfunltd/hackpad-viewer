@@ -12,8 +12,7 @@ class HackpadHelper
     public static function getSubdomain(): string
     {
         $host       = $_SERVER['HTTP_HOST'] ?? '';
-        $primary    = getenv('HACKPAD_PRIMARY_DOMAIN') ?: 'hackpad.tw';
-        $suffix     = '.' . $primary;
+        $suffix     = getenv('HACKPAD_PRIMARY_DOMAIN') ?: '.hackpad.tw';
         if (str_ends_with($host, $suffix)) {
             return substr($host, 0, strlen($host) - strlen($suffix));
         }

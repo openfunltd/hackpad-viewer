@@ -94,7 +94,8 @@ class GoogleOAuth
     public static function getCallbackUrl(): string
     {
         $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-        $base   = getenv('HACKPAD_PRIMARY_DOMAIN') ?: 'hackpad.tw';
+        // Strip leading separator (. or -) to get the bare domain
+        $base   = ltrim(getenv('HACKPAD_PRIMARY_DOMAIN') ?: '.hackpad.tw', '.-');
         return $scheme . '://' . $base . '/ep/account/openid';
     }
 
