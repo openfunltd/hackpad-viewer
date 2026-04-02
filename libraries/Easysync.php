@@ -315,7 +315,7 @@ class Easysync
             foreach ($run['a'] as $an) {
                 $pair = $numToAttrib[$an] ?? null;
                 if ($pair && $pair[0] === 'author' && isset($authorInfo[$pair[1]])) {
-                    return $authorInfo[$pair[1]];
+                    return $authorInfo[$pair[1]] + ['key' => $pair[1]];
                 }
             }
         }
@@ -329,6 +329,7 @@ class Easysync
 
         $html      = '';
         $listStack = []; // stack of ['type' => string, 'level' => int]
+        $lastBodyAuthorKey = null; // track last shown author for body lines (reset on headings)
 
         foreach ($lines as $lineRuns) {
             // Get line-level type/level from first char's list attribute
@@ -353,13 +354,27 @@ class Easysync
 
             // Build author gutter span (used for non-comment, non-blank lines)
             $gutterSpan = '';
+            $isHeading  = in_array($lineType, ['hone', 'htwo']);
             if (!empty($lineAuthorInfo) && $lineType !== 'comment') {
-                $abbrev     = self::abbreviateName($lineAuthorInfo['name']);
-                $colorAttr  = $lineAuthorInfo['color']
-                    ? ' style="color:' . htmlspecialchars($lineAuthorInfo['color'], ENT_QUOTES) . '"'
-                    : '';
-                $gutterSpan = '<span class="line-author"' . $colorAttr . '>'
-                    . htmlspecialchars($abbrev, ENT_QUOTES, 'UTF-8') . '</span>';
+                $currentKey = $lineAuthorInfo['key'];
+                // For headings: always show; resets consecutive-author tracking
+                // For body lines: only show when author changes
+                $showAuthor = $isHeading || ($currentKey !== $lastBodyAuthorKey);
+                if ($showAuthor) {
+                    $abbrev    = self::abbreviateName($lineAuthorInfo['name']);
+                    $colorAttr = $lineAuthorInfo['color']
+                        ? ' style="color:' . htmlspecialchars($lineAuthorInfo['color'], ENT_QUOTES) . '"'
+                        : '';
+                    $gutterSpan = '<span class="line-author"' . $colorAttr . '>'
+                        . htmlspecialchars($abbrev, ENT_QUOTES, 'UTF-8') . '</span>';
+                    if (!$isHeading) {
+                        $lastBodyAuthorKey = $currentKey;
+                    }
+                }
+            }
+            // Headings break the consecutive run — reset tracking after heading
+            if ($isHeading) {
+                $lastBodyAuthorKey = null;
             }
 
             // Close list tags if needed
