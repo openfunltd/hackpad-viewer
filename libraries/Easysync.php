@@ -289,27 +289,57 @@ class Easysync
      * Convert runs to HTML, using the attribute pool.
      * $numToAttrib: array mapping attrNum => [key, value]
      */
+    /**
+     * Abbreviate an author name for the gutter label.
+     * "chihao yo" → "CHIHAO Y", "Audrey Tang" → "AUDREY T", "alice" → "ALICE"
+     */
+    private static function abbreviateName(string $name): string
+    {
+        $words = array_values(array_filter(preg_split('/\s+/u', trim($name))));
+        if (empty($words)) return '';
+        if (count($words) === 1) {
+            return mb_strtoupper(mb_substr($words[0], 0, 8, 'UTF-8'), 'UTF-8');
+        }
+        $first = $words[0];
+        $last  = end($words);
+        return mb_strtoupper($first . ' ' . mb_substr($last, 0, 1, 'UTF-8'), 'UTF-8');
+    }
+
+    /**
+     * Find the primary author of a line (first author with a known name).
+     * Returns ['name', 'color'] or empty array.
+     */
+    private static function findLineAuthor(array $lineRuns, array $numToAttrib, array $authorInfo): array
+    {
+        foreach ($lineRuns as $run) {
+            foreach ($run['a'] as $an) {
+                $pair = $numToAttrib[$an] ?? null;
+                if ($pair && $pair[0] === 'author' && isset($authorInfo[$pair[1]])) {
+                    return $authorInfo[$pair[1]];
+                }
+            }
+        }
+        return [];
+    }
+
     public static function runsToHtml(array $runs, array $numToAttrib, array $authorInfo = []): string
     {
         // Split runs into lines
         $lines = self::splitRunsIntoLines($runs);
 
-        $html    = '';
+        $html      = '';
         $listStack = []; // stack of ['type' => string, 'level' => int]
 
         foreach ($lines as $lineRuns) {
-            // Get line-level attributes from first char's attributes
+            // Get line-level type/level from first char's list attribute
             $lineType  = '';
             $lineLevel = 0;
-            $lineLink  = '';
 
             if (!empty($lineRuns)) {
-                $firstAttribs = $lineRuns[0]['a'];
-                foreach ($firstAttribs as $an) {
+                foreach ($lineRuns[0]['a'] as $an) {
                     $pair = $numToAttrib[$an] ?? null;
                     if (!$pair) continue;
                     if ($pair[0] === 'list' && $pair[1] !== '') {
-                        // e.g. "bullet1", "number2", "hone1", "htwo1", "task1", "code1", "indent1", "comment1"
                         if (preg_match('/^(.*?)(\d+)$/', $pair[1], $lm)) {
                             $lineType  = $lm[1];
                             $lineLevel = intval($lm[2]);
@@ -318,20 +348,18 @@ class Easysync
                 }
             }
 
-            // For comment lines, find the author of the first text run
-            $lineAuthor = '';
-            $lineAuthorColor = '';
-            if ($lineType === 'comment' && !empty($authorInfo)) {
-                foreach ($lineRuns as $run) {
-                    foreach ($run['a'] as $an) {
-                        $pair = $numToAttrib[$an] ?? null;
-                        if ($pair && $pair[0] === 'author' && isset($authorInfo[$pair[1]])) {
-                            $lineAuthor      = $authorInfo[$pair[1]]['name'];
-                            $lineAuthorColor = $authorInfo[$pair[1]]['color'];
-                            break 2;
-                        }
-                    }
-                }
+            // Find primary author for this line
+            $lineAuthorInfo = !empty($authorInfo) ? self::findLineAuthor($lineRuns, $numToAttrib, $authorInfo) : [];
+
+            // Build author gutter span (used for non-comment, non-blank lines)
+            $gutterSpan = '';
+            if (!empty($lineAuthorInfo) && $lineType !== 'comment') {
+                $abbrev     = self::abbreviateName($lineAuthorInfo['name']);
+                $colorAttr  = $lineAuthorInfo['color']
+                    ? ' style="color:' . htmlspecialchars($lineAuthorInfo['color'], ENT_QUOTES) . '"'
+                    : '';
+                $gutterSpan = '<span class="line-author"' . $colorAttr . '>'
+                    . htmlspecialchars($abbrev, ENT_QUOTES, 'UTF-8') . '</span>';
             }
 
             // Close list tags if needed
@@ -341,18 +369,22 @@ class Easysync
             $lineHtml = self::lineRunsToHtml($lineRuns, $numToAttrib, $lineType);
 
             if ($lineType === 'hone') {
-                $html .= '<h2>' . $lineHtml . '</h2>' . "\n";
+                $rel = $gutterSpan ? ' style="position:relative"' : '';
+                $html .= '<h2' . $rel . '>' . $gutterSpan . $lineHtml . '</h2>' . "\n";
             } elseif ($lineType === 'htwo') {
-                $html .= '<h3>' . $lineHtml . '</h3>' . "\n";
+                $rel = $gutterSpan ? ' style="position:relative"' : '';
+                $html .= '<h3' . $rel . '>' . $gutterSpan . $lineHtml . '</h3>' . "\n";
             } elseif ($lineType === 'comment') {
-                $indent = max(0, $lineLevel - 1);
-                $style  = $indent > 0 ? ' style="margin-left:' . ($indent * 1.5) . 'rem"' : '';
-                if ($lineAuthor) {
-                    $colorStyle = $lineAuthorColor ? ' style="color:' . htmlspecialchars($lineAuthorColor, ENT_QUOTES) . '"' : '';
-                    $authorHtml = '<span class="comment-author"' . $colorStyle . '>'
-                        . htmlspecialchars($lineAuthor, ENT_QUOTES, 'UTF-8') . '</span>';
-                } else {
-                    $authorHtml = '';
+                // Inline author attribution for comments
+                $indent     = max(0, $lineLevel - 1);
+                $style      = $indent > 0 ? ' style="margin-left:' . ($indent * 1.5) . 'rem"' : '';
+                $authorHtml = '';
+                if (!empty($lineAuthorInfo)) {
+                    $colorAttr  = $lineAuthorInfo['color']
+                        ? ' style="color:' . htmlspecialchars($lineAuthorInfo['color'], ENT_QUOTES) . '"'
+                        : '';
+                    $authorHtml = '<span class="comment-author"' . $colorAttr . '>'
+                        . htmlspecialchars($lineAuthorInfo['name'], ENT_QUOTES, 'UTF-8') . '</span>';
                 }
                 $html .= '<div class="pad-comment"' . $style . '>' . $authorHtml . $lineHtml . '</div>' . "\n";
             } elseif (in_array($lineType, ['bullet', 'number', 'task', 'taskdone', 'code', 'indent'])) {
@@ -369,11 +401,13 @@ class Easysync
                         $listStack[] = ['type' => $lineType, 'level' => $lineLevel];
                     }
                 }
-                $html .= '<li>' . $lineHtml . '</li>' . "\n";
+                $rel = $gutterSpan ? ' style="position:relative"' : '';
+                $html .= '<li' . $rel . '>' . $gutterSpan . $lineHtml . '</li>' . "\n";
             } else {
                 // Regular paragraph
                 if (trim($lineHtml) !== '') {
-                    $html .= '<p>' . $lineHtml . '</p>' . "\n";
+                    $rel = $gutterSpan ? ' style="position:relative"' : '';
+                    $html .= '<p' . $rel . '>' . $gutterSpan . $lineHtml . '</p>' . "\n";
                 } else {
                     $html .= '<p class="blank-line">&nbsp;</p>' . "\n";
                 }

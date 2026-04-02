@@ -21,7 +21,7 @@
     </nav>
   </div>
 </header>
-<main class="container">
+<main class="container<?= !empty($this->wideContainer) ? ' container--wide' : '' ?>">
   <div class="page-layout">
     <div class="page-content">
     <?= $this->yield('content') ?>
