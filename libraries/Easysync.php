@@ -289,7 +289,7 @@ class Easysync
      * Convert runs to HTML, using the attribute pool.
      * $numToAttrib: array mapping attrNum => [key, value]
      */
-    public static function runsToHtml(array $runs, array $numToAttrib, array $authorNames = []): string
+    public static function runsToHtml(array $runs, array $numToAttrib, array $authorInfo = []): string
     {
         // Split runs into lines
         $lines = self::splitRunsIntoLines($runs);
@@ -320,12 +320,14 @@ class Easysync
 
             // For comment lines, find the author of the first text run
             $lineAuthor = '';
-            if ($lineType === 'comment' && !empty($authorNames)) {
+            $lineAuthorColor = '';
+            if ($lineType === 'comment' && !empty($authorInfo)) {
                 foreach ($lineRuns as $run) {
                     foreach ($run['a'] as $an) {
                         $pair = $numToAttrib[$an] ?? null;
-                        if ($pair && $pair[0] === 'author' && isset($authorNames[$pair[1]])) {
-                            $lineAuthor = $authorNames[$pair[1]];
+                        if ($pair && $pair[0] === 'author' && isset($authorInfo[$pair[1]])) {
+                            $lineAuthor      = $authorInfo[$pair[1]]['name'];
+                            $lineAuthorColor = $authorInfo[$pair[1]]['color'];
                             break 2;
                         }
                     }
@@ -345,9 +347,13 @@ class Easysync
             } elseif ($lineType === 'comment') {
                 $indent = max(0, $lineLevel - 1);
                 $style  = $indent > 0 ? ' style="margin-left:' . ($indent * 1.5) . 'rem"' : '';
-                $authorHtml = $lineAuthor
-                    ? '<span class="comment-author">' . htmlspecialchars($lineAuthor, ENT_QUOTES, 'UTF-8') . '</span>'
-                    : '';
+                if ($lineAuthor) {
+                    $colorStyle = $lineAuthorColor ? ' style="color:' . htmlspecialchars($lineAuthorColor, ENT_QUOTES) . '"' : '';
+                    $authorHtml = '<span class="comment-author"' . $colorStyle . '>'
+                        . htmlspecialchars($lineAuthor, ENT_QUOTES, 'UTF-8') . '</span>';
+                } else {
+                    $authorHtml = '';
+                }
                 $html .= '<div class="pad-comment"' . $style . '>' . $authorHtml . $lineHtml . '</div>' . "\n";
             } elseif (in_array($lineType, ['bullet', 'number', 'task', 'taskdone', 'code', 'indent'])) {
                 $tag = ($lineType === 'number') ? 'ol' : 'ul';

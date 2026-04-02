@@ -60,19 +60,40 @@ class PadContentLoader
         // 6. Remove title line (first line) since we display it separately
         $runs = self::skipTitleLine($runs);
 
-        // 7. Build author name map from apool (author: p.{id} -> fullName)
-        $authorNames = self::buildAuthorNames($numToAttrib);
+        // 7. Build author info map from apool (author: p.{id} -> {name, color})
+        $authorInfo = self::buildAuthorInfo($numToAttrib);
 
         // 8. Render to HTML
-        $html = Easysync::runsToHtml($runs, $numToAttrib, $authorNames);
+        $html = Easysync::runsToHtml($runs, $numToAttrib, $authorInfo);
 
         return $html;
     }
 
     /**
-     * Build a map from author attribute value (e.g. "p.27229") to display name.
+     * 12 visually distinct, readable colors for author attribution.
+     * Chosen to be legible on white/light backgrounds.
      */
-    private static function buildAuthorNames(array $numToAttrib): array
+    private static array $AUTHOR_COLORS = [
+        '#b5500a', // burnt orange
+        '#1a7a3a', // forest green
+        '#1455a4', // cobalt blue
+        '#7b2d8b', // purple
+        '#b8860b', // dark goldenrod
+        '#c0392b', // crimson
+        '#0e7d7d', // teal
+        '#2e4799', // indigo
+        '#8b4513', // saddle brown
+        '#4a7c20', // olive green
+        '#a63278', // magenta-rose
+        '#2c6e8a', // steel blue
+    ];
+
+    /**
+     * Build a map from author attribute value (e.g. "p.27229") to
+     * ['name' => string, 'color' => hex color string].
+     * Color is assigned deterministically from the numeric user ID.
+     */
+    private static function buildAuthorInfo(array $numToAttrib): array
     {
         $ids = [];
         foreach ($numToAttrib as $pair) {
@@ -82,15 +103,20 @@ class PadContentLoader
         }
         if (empty($ids)) return [];
 
-        $db      = MiniEngine::getDb();
-        $in      = implode(',', $ids);
-        $stmt    = $db->query(
+        $db   = MiniEngine::getDb();
+        $in   = implode(',', $ids);
+        $stmt = $db->query(
             "SELECT id, fullName, email FROM pro_accounts WHERE id IN ($in)"
         );
-        $map = [];
+        $map  = [];
+        $n    = count(self::$AUTHOR_COLORS);
         foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
-            $name = html_entity_decode($row['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
-            $map['p.' . $row['id']] = $name ?: $row['email'];
+            $name  = html_entity_decode($row['fullName'] ?? '', ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $color = self::$AUTHOR_COLORS[$row['id'] % $n];
+            $map['p.' . $row['id']] = [
+                'name'  => $name ?: $row['email'],
+                'color' => $color,
+            ];
         }
         return $map;
     }
