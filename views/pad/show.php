@@ -15,6 +15,7 @@ $this->yield_start('content');
       <?php if ($this->padMeta['createdDate']): ?>
         <span class="pad-date">建立：<?= $this->escape(HackpadHelper::formatDate($this->padMeta['createdDate'])) ?></span>
       <?php endif; ?>
+      <a class="pad-history-link" href="/<?= $this->escape($this->padMeta['localPadId']) ?>/history">歷史紀錄</a>
       <?php if (!empty($this->padCollections)): ?>
         <div class="pad-collections">
           <?php foreach ($this->padCollections as $c): ?>

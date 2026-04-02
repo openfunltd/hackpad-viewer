@@ -21,6 +21,10 @@ MiniEngine::dispatch(function($uri){
     if ($uri === '/ep/account/sign-out')   return ['ep', 'accountSignOut'];
     if ($uri === '/ep/account/openid')     return ['ep', 'accountOpenid'];
     if ($uri === '/ep/account/google-login') return ['ep', 'accountGoogleLogin'];
+    // /{padSlug}/history
+    if (preg_match('#^/([^/]+)/history$#', $uri, $m)) {
+        return ['pad', 'history', [urldecode($m[1])]];
+    }
     // /{padSlug} — pad view (single path segment, not empty)
     if (preg_match('#^/([^/]+)$#', $uri, $m)) {
         return ['pad', 'show', [urldecode($m[1])]];

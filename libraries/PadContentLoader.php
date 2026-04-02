@@ -70,7 +70,106 @@ class PadContentLoader
     }
 
     /**
-     * 12 visually distinct, readable colors for author attribution.
+     * Get the revision history of a pad as a list of edit sessions.
+     * Consecutive revisions by the same author within SESSION_GAP_MS are merged.
+     *
+     * Returns array of sessions: [
+     *   'fromRev'    => int,
+     *   'toRev'      => int,
+     *   'startTime'  => int (ms timestamp),
+     *   'endTime'    => int (ms timestamp),
+     *   'authorKey'  => string (e.g. "p.275"),
+     *   'authorName' => string,
+     *   'authorColor'=> string,
+     * ]
+     */
+    public static function getRevisionHistory(string $globalPadId): array
+    {
+        $db = MiniEngine::getDb();
+
+        // Get NUMID
+        $stmt = $db->prepare('SELECT NUMID FROM PAD_REVMETA_META WHERE ID = ?');
+        $stmt->execute([$globalPadId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) return [];
+        $numid = $row['NUMID'];
+
+        // Load all REVMETA pages ordered by PAGESTART
+        $stmt = $db->prepare(
+            'SELECT PAGESTART, DATA, OFFSETS FROM PAD_REVMETA_TEXT WHERE NUMID = ? ORDER BY PAGESTART'
+        );
+        $stmt->execute([$numid]);
+        $pages = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Build apool: author index → author key ("p.NNN")
+        $numToAttrib = self::getApool($globalPadId);
+        $indexToKey  = [];
+        foreach ($numToAttrib as $num => $pair) {
+            if ($pair[0] === 'author') {
+                $indexToKey[$num] = $pair[1]; // e.g. "p.275"
+            }
+        }
+
+        // Parse every revmeta entry → [{rev, t, authorKey}]
+        $revs = [];
+        foreach ($pages as $page) {
+            $pageStart = (int) $page['PAGESTART'];
+            $offsets   = array_map('intval', explode(',', $page['OFFSETS']));
+            $charPos   = 0;
+            for ($i = 0; $i < count($offsets); $i++) {
+                $len = $offsets[$i];
+                if ($len === 0) continue;
+                $json = mb_substr($page['DATA'], $charPos, $len, 'UTF-8');
+                $charPos += $len;
+                $entry = json_decode($json, true);
+                if (!$entry) continue;
+                $rev       = $pageStart + $i;
+                $authorIdx = $entry['a'] ?? 0;
+                $revs[]    = [
+                    'rev'       => $rev,
+                    't'         => (int)($entry['t'] ?? 0),
+                    'authorKey' => $indexToKey[$authorIdx] ?? '',
+                ];
+            }
+        }
+
+        if (empty($revs)) return [];
+
+        // Resolve author names + colors
+        $authorInfo = self::buildAuthorInfo($numToAttrib);
+
+        // Group into edit sessions (same author, gap < 5 min)
+        $sessionGapMs = 5 * 60 * 1000;
+        $sessions = [];
+        $cur = null;
+        foreach ($revs as $r) {
+            if ($cur === null
+                || $r['authorKey'] !== $cur['authorKey']
+                || ($r['t'] - $cur['endTime']) > $sessionGapMs
+            ) {
+                if ($cur) $sessions[] = $cur;
+                $info = $authorInfo[$r['authorKey']] ?? null;
+                $cur  = [
+                    'fromRev'     => $r['rev'],
+                    'toRev'       => $r['rev'],
+                    'startTime'   => $r['t'],
+                    'endTime'     => $r['t'],
+                    'authorKey'   => $r['authorKey'],
+                    'authorName'  => $info['name'] ?? ($r['authorKey'] ?: '(unknown)'),
+                    'authorColor' => $info['color'] ?? '#888',
+                ];
+            } else {
+                $cur['toRev']   = $r['rev'];
+                $cur['endTime'] = $r['t'];
+            }
+        }
+        if ($cur) $sessions[] = $cur;
+
+        return array_reverse($sessions); // newest first
+    }
+
+    /**
+
      * Chosen to be legible on white/light backgrounds.
      */
     private static array $AUTHOR_COLORS = [

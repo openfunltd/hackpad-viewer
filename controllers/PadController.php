@@ -55,9 +55,40 @@ class PadController extends MiniEngine_Controller
         // Render pad content
         $content = PadContentLoader::renderPad($domainId, $localPadId);
 
-        $this->view->padMeta       = $padMeta;
-        $this->view->content       = $content;
+        $this->view->padMeta        = $padMeta;
+        $this->view->content        = $content;
         $this->view->padCollections = HackpadHelper::getPadCollections($globalPadId);
+        $this->view->padTitle       = $padMeta['title'] ?: $localPadId;
+    }
+
+    /** Show revision history for a pad. */
+    public function historyAction(string $padSlug)
+    {
+        $domain = $this->view->domain;
+        if (!$domain) return $this->notfound('Workspace not found');
+
+        $domainId    = (int) $domain['id'];
+        $localPadId  = HackpadHelper::extractPadId($padSlug);
+        $globalPadId = $domainId . '$' . $localPadId;
+
+        if (!HackpadHelper::canReadPad($globalPadId, $domainId)) {
+            if (!MiniEngine::getSession('user_id')) {
+                return $this->redirect('/ep/account/sign-in?cont=' . urlencode($_SERVER['REQUEST_URI']));
+            }
+            return $this->notfound('You do not have access to this pad.');
+        }
+
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT localPadId, title FROM pro_padmeta WHERE domainId = ? AND localPadId = ? AND isDeleted = 0'
+        );
+        $stmt->execute([$domainId, $localPadId]);
+        $padMeta = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$padMeta) return $this->notfound('Pad not found.');
+
+        $this->view->padMeta  = $padMeta;
         $this->view->padTitle = $padMeta['title'] ?: $localPadId;
+        $this->view->padSlug  = $padSlug;
+        $this->view->sessions = PadContentLoader::getRevisionHistory($globalPadId);
     }
 }
