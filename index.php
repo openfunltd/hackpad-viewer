@@ -9,6 +9,11 @@ MiniEngine::dispatch(function($uri){
     if (preg_match('#^/collection/(\d+)$#', $uri, $m)) {
         return ['collection', 'show', [(int)$m[1]]];
     }
+    // /ep/pad/static/{padId} — legacy print URL, redirect to pad view
+    if (preg_match('#^/ep/pad/static/([^/]+)$#', $uri, $m)) {
+        header('Location: /' . urlencode($m[1]), true, 302);
+        exit;
+    }
     // /ep/profile/{userId}
     if (preg_match('#^/ep/profile/(\d+)$#', $uri, $m)) {
         return ['profile', 'show', [(int)$m[1]]];
