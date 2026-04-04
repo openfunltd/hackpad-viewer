@@ -90,6 +90,20 @@ class HackpadHelper
     }
 
     /**
+     * Check if the given email is an admin of a specific domain
+     * (has isAdmin=1 in pro_accounts for that domainId).
+     */
+    public static function isDomainAdmin(string $email, int $domainId): bool
+    {
+        $db   = MiniEngine::getDb();
+        $stmt = $db->prepare(
+            'SELECT id FROM pro_accounts WHERE email = ? AND domainId = ? AND isAdmin = 1 AND isDeleted = 0 LIMIT 1'
+        );
+        $stmt->execute([strtolower(trim($email)), $domainId]);
+        return (bool) $stmt->fetch();
+    }
+
+    /**
      * Build the full URL for a subdomain workspace.
      * e.g. "g0v" → "https://g0v.hackpad.tw" (prod) or "https://g0v-hackpad.ronny-test.openfun.dev" (test)
      */

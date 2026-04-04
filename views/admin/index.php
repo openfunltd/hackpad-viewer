@@ -14,5 +14,9 @@ $this->yield_start('content');
     <div class="admin-card-number"><?= number_format((int)$this->userCount) ?></div>
     <div class="admin-card-label">Users</div>
   </a>
+  <a class="admin-card" href="/admin/pads">
+    <div class="admin-card-number">📋</div>
+    <div class="admin-card-label">文章管理</div>
+  </a>
 </div>
 <?php $this->yield_end(); echo $this->partial('layout/app'); ?>

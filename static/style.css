@@ -491,3 +491,43 @@ details summary { cursor: pointer; font-size: 0.82rem; color: #2563eb; }
 }
 .search-result-snippet mark { background: #fef9c3; color: inherit; border-radius: 2px; }
 .search-result-meta { font-size: 0.78rem; color: #aaa; }
+
+/* ── Admin Pad Table ── */
+.admin-pad-header { margin-bottom: 1rem; }
+.admin-pad-hint { color: #888; font-size: 0.88rem; margin-top: 0.25rem; }
+.admin-pad-table-wrap { overflow-x: auto; }
+.admin-pad-table {
+  width: 100%; border-collapse: collapse; font-size: 0.82rem; background: #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06); border-radius: 6px; overflow: hidden;
+}
+.admin-pad-table th {
+  background: #f8f9fa; text-align: left; padding: 0.5rem 0.75rem;
+  font-weight: 600; border-bottom: 2px solid #e9ecef; white-space: nowrap;
+}
+.admin-pad-table td {
+  padding: 0.45rem 0.75rem; border-bottom: 1px solid #f0f0f0; vertical-align: top;
+}
+.admin-pad-table tr:last-child td { border-bottom: none; }
+.admin-pad-table tr:hover td { background: #f8faff; }
+.pad-code a { font-family: monospace; font-size: 0.78rem; color: #888; }
+.pad-title-col { max-width: 240px; }
+.pad-title-col a { color: #222; }
+.pad-date-col { white-space: nowrap; color: #888; }
+.pad-ip-col, .pad-country-col { white-space: nowrap; font-family: monospace; font-size: 0.78rem; }
+.pad-author-col a { color: #2563eb; }
+.no-data { color: #ccc; }
+.policy-badge {
+  display: inline-block; font-size: 0.7rem; font-weight: 600; border-radius: 3px;
+  padding: 0 0.4rem; line-height: 1.6;
+}
+.policy-allow  { background: #d1fae5; color: #065f46; }
+.policy-link   { background: #dbeafe; color: #1e40af; }
+.policy-domain { background: #fef9c3; color: #854d0e; }
+.policy-deny   { background: #fee2e2; color: #991b1b; }
+.spam-high td { background: #fff5f5; }
+.spam-medium td { background: #fffbeb; }
+.spam-risk-col { text-align: center; font-size: 1rem; }
+.pad-age-col { white-space: nowrap; }
+.age-warn { color: #dc2626; font-weight: 600; }
+.pad-onetime-col { text-align: center; }
+.onetime-yes { color: #dc2626; font-weight: 700; }

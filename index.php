@@ -17,6 +17,7 @@ MiniEngine::dispatch(function($uri){
     if ($uri === '/admin')          return ['admin', 'index'];
     if ($uri === '/admin/domains')  return ['admin', 'domains'];
     if ($uri === '/admin/users')    return ['admin', 'users'];
+    if ($uri === '/admin/pads')     return ['adminPad', 'show'];
     // /ep/* routes (login, logout, OAuth callback)
     if ($uri === '/ep/account/sign-in')    return ['ep', 'accountSignIn'];
     if ($uri === '/ep/account/sign-out')   return ['ep', 'accountSignOut'];

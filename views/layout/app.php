@@ -24,6 +24,10 @@
               <div class="user-dropdown-section">Admin</div>
               <a href="/admin">⚙ Admin Panel</a>
               <div class="user-dropdown-divider"></div>
+            <?php elseif ($GLOBALS['_isDomainAdmin']): ?>
+              <div class="user-dropdown-section">管理</div>
+              <a href="/admin/pads">📋 文章管理</a>
+              <div class="user-dropdown-divider"></div>
             <?php endif; ?>
             <?php foreach ($GLOBALS['_userDomains'] as $wd): ?>
               <a href="<?= $this->escape(HackpadHelper::getDomainUrl($wd['subDomain'])) ?>">
