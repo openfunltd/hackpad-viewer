@@ -204,7 +204,7 @@ hackpad-viewer/
 
 ## 目前進度（完成 / 待做）
 
-> 最後更新：2026-04-02（18:00）
+> 最後更新：2026-04-04（14:41）
 
 ### ✅ 已完成
 
@@ -212,9 +212,10 @@ hackpad-viewer/
 - `mini-engine.php` 框架整合
 - `libraries/Easysync.php`：完整的 Easysync2 changeset 解析、套用、atext→HTML 轉換；含 per-line author gutter、comment author 顯示；連續同作者的行只顯示第一行標示，heading 後重置
 - `libraries/PadContentLoader.php`：從 MySQL key revision 載入 atext，套用剩餘 changesets，渲染 HTML；含歷史紀錄 diff（LCS 演算法、context collapse、1 小時內同人合併）；含 `getPadTextPreviews()`（批次取預覽文字）；`getPadContributors()`（從 apool 取參與者）；`addHeadingIds()`（注入 TOC anchor id，濾除 line-author 文字）
-- `libraries/HackpadHelper.php`：subdomain 解析、domain 查詢、pad 權限檢查（email-based 跨 domain）、使用者查詢、getUserDomains、getDomainUrl、isSiteAdmin
+- `libraries/HackpadHelper.php`：subdomain 解析、domain 查詢、pad 權限檢查（email-based 跨 domain）、使用者查詢、getUserDomains、getDomainUrl、isSiteAdmin、`isDomainAdmin()`（per-domain isAdmin 檢查）
 - `libraries/GoogleOAuth.php`：Google OAuth2 完整流程（auth URL、code exchange、state 驗證）
 - `libraries/Elastic.php`：Elasticsearch client（使用者提供）
+- `libraries/GeoIP.php`：純 PHP MaxMind legacy GeoIP.dat 讀取器（不需 extension/Composer）；strip `::ffff:` IPv6-mapped prefix
 
 #### 頁面 & 路由
 - `controllers/IndexController.php`：首頁 pad 列表；主網域登入後顯示「我的 Pads」，未登入顯示歡迎說明頁；每篇 pad 顯示第 2–6 行預覽文字及創作者姓名
@@ -222,12 +223,15 @@ hackpad-viewer/
 - `controllers/PadController.php`：Pad 閱讀頁（含權限檢查）+ `/{padSlug}/history` 歷史紀錄頁；傳入 `padContributors`、`padToc` 給 sidebar
 - `controllers/EpController.php`：登入/登出/Google OAuth callback；EMAIL_ALIASES 支援；open redirect 防護
 - `controllers/AdminController.php`：Site admin 面板（/admin/domains, /admin/users），僅 isAdmin=1 可存取
+- `controllers/AdminPadController.php`：Domain admin 文章管理（/admin/pads）；不分頁列全部文章；spam 風險標示（🔴 帳號 < 5min + 一次性登入，🟡 其中一項）；排序：建立時間新到舊
+- `controllers/ProfileController.php`：使用者 profile 頁（/ep/profile/{id}）；顯示該用戶建立的文章列表
 - `controllers/SearchController.php`：Elasticsearch 搜尋（/search?q=...），依 domainId + guestPolicy 過濾，分頁
 - `controllers/ErrorController.php`：統一錯誤頁（404/500）
 
 #### 存取控制
-- `init.inc.php`：全域 auth gate（isDomainPublic → pad-level guestPolicy bypass → isEmailDomainMember）；pre-load `_userDomains`、`_isSiteAdmin` 全域變數
+- `init.inc.php`：全域 auth gate；pre-load `_userDomains`、`_isSiteAdmin`、`_isDomainAdmin` 全域變數
 - 主網域 / 子網域 / 私有 domain / 公開 pad 的存取矩陣已全部實作並驗證
+- `/ep/pad/static/{padId}` → 302 轉向 `/{padId}`（支援舊版 hackpad 列印 URL）
 
 #### UI
 - `views/layout/app.php`：主版型；header 搜尋框；user dropdown（workspace 清單 + admin 連結）；footer 含 openfun.tw 維運說明 + GitHub 開源連結；sidebar 支援兩種模式：文章頁（參與者＋目錄）/ 列表頁（Members＋Collections）
@@ -235,7 +239,8 @@ hackpad-viewer/
 - `views/collection/show.php`：Collection 文章列表（含日期、創作者姓名、private 標籤、預覽文字）
 - `views/pad/show.php`：pad 閱讀頁；per-line author gutter（白框外左側）
 - `views/pad/history.php`：歷史紀錄頁；每個 session 的 diff（新增綠色/刪除紅色，預設全展開）
-- `views/admin/`：index.php、domains.php、users.php
+- `views/admin/`：index.php（含「文章管理」卡片）、domains.php、users.php
+- `views/adminPad/show.php`：文章管理表格（風險、代碼、標題、日期、作者、帳號年齡、一次性帳號、權限）
 - `views/search/index.php`：搜尋結果頁（高亮標題 + 摘要）
 - `static/style.css`：全站樣式
 - `README.md`、`LICENSE`（BSD 3-Clause，openfun.tw 歐噴有限公司，2026）
@@ -243,6 +248,8 @@ hackpad-viewer/
 #### Git commits（本 session）
 | Commit | 說明 |
 |--------|------|
+| `ce9ccad` | /ep/pad/static/{padId} → 302 轉向 /{padId}（舊版列印 URL）|
+| `1475ff1` | Domain admin 文章管理頁（/admin/pads）；spam 風險標示（帳號年齡 + 一次性帳號）|
 | `91ae143` | 修正 profile 頁名稱 HTML entity 未解碼（__get 回傳值拷貝問題）|
 | `eb3364b` | Profile 頁 fullName html_entity_decode（初版，有 __get 拷貝問題）|
 | `7645eef` | 文章頁 sidebar 參與者連結到 profile 頁；getPadContributors 加入 id 欄位 |
