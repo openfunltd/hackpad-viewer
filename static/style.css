@@ -531,3 +531,18 @@ details summary { cursor: pointer; font-size: 0.82rem; color: #2563eb; }
 .age-warn { color: #dc2626; font-weight: 600; }
 .pad-onetime-col { text-align: center; }
 .onetime-yes { color: #dc2626; font-weight: 700; }
+
+/* ── Migration notice ── */
+.migration-notice {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-left: 4px solid #2563eb;
+  border-radius: 6px;
+  padding: 0.85rem 1.1rem;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #1e3a5f;
+  line-height: 1.6;
+}
+.migration-notice-icon { margin-right: 0.3rem; }
+.migration-notice a { color: #2563eb; }

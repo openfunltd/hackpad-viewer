@@ -19,6 +19,21 @@ $this->yield_start('content');
   <p class="welcome-operator">本站由 <a href="https://openfun.tw" target="_blank">歐噴有限公司 openfun.tw</a> 維運</p>
 </div>
 <?php else: ?>
+<?php
+$subDomain = HackpadHelper::getSubdomain();
+$oldUrl = $subDomain
+    ? 'https://' . $subDomain . '.old.hackpad.tw'
+    : 'https://old.hackpad.tw';
+?>
+<div class="migration-notice">
+  <span class="migration-notice-icon">ℹ️</span>
+  因為原有 hackpad 程式老舊加上 AI 爬蟲量日益增加，導致原有 hackpad.tw 服務不穩，自 2026-04-04 起，採用透過 Claude Sonnet 4.6 重新建置的 <strong>Hackpad 封存器</strong>來取代原有的 hackpad，您仍可至
+  <a href="https://old.hackpad.tw" target="_blank">https://old.hackpad.tw</a>
+  <?php if ($subDomain): ?>
+    或 <a href="<?= $this->escape($oldUrl) ?>" target="_blank"><?= $this->escape($oldUrl) ?></a>
+  <?php endif; ?>
+  至舊版查看，舊版將於 <strong>2026-05-04</strong> 停用。
+</div>
 <h2 class="page-heading">
   <?= !empty($this->filterByCreator) ? '我的 Pads' : '最近的 Pads' ?>
 </h2>
