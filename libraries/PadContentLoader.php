@@ -452,6 +452,12 @@ class PadContentLoader
         }
         if ($keyAtext === null) return [];
 
+        // Guard: replaying too many changesets risks OOM / timeout for very large pads.
+        // Diffs degrade gracefully to "no diff shown" when we return [].
+        if ($maxRev - $keyRev > 1500) {
+            return [];
+        }
+
         $runs = Easysync::atextToRuns($keyAtext);
 
         $revsSet = array_flip($revs);
@@ -489,7 +495,7 @@ class PadContentLoader
         // Guard against huge diffs
         $m = count($aLines);
         $n = count($bLines);
-        if ($m * $n > 400000) {
+        if ($m * $n > 100000) {
             return [['op' => '~', 'line' => '（diff 過大，略過）']];
         }
 
@@ -505,23 +511,23 @@ class PadContentLoader
             }
         }
 
-        // Backtrack to produce diff
+        // Backtrack to produce diff (build in reverse, then flip — avoids O(n²) array_unshift)
         $diff = [];
         $i = $m; $j = $n;
         while ($i > 0 || $j > 0) {
             if ($i > 0 && $j > 0 && $aLines[$i - 1] === $bLines[$j - 1]) {
-                array_unshift($diff, ['op' => ' ', 'line' => $aLines[$i - 1]]);
+                $diff[] = ['op' => ' ', 'line' => $aLines[$i - 1]];
                 $i--; $j--;
             } elseif ($j > 0 && ($i === 0 || $dp[$i][$j - 1] >= $dp[$i - 1][$j])) {
-                array_unshift($diff, ['op' => '+', 'line' => $bLines[$j - 1]]);
+                $diff[] = ['op' => '+', 'line' => $bLines[$j - 1]];
                 $j--;
             } else {
-                array_unshift($diff, ['op' => '-', 'line' => $aLines[$i - 1]]);
+                $diff[] = ['op' => '-', 'line' => $aLines[$i - 1]];
                 $i--;
             }
         }
 
-        return $diff;
+        return array_reverse($diff);
     }
 
     /**

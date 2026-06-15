@@ -31,8 +31,8 @@ $this->yield_start('content');
       <tr>
         <td class="history-time">
           <?php
-            $start = date('Y-m-d H:i', $s['startTime'] / 1000);
-            $end   = date('H:i', $s['endTime'] / 1000);
+            $start = date('Y-m-d H:i', intdiv($s['startTime'], 1000));
+            $end   = date('H:i', intdiv($s['endTime'], 1000));
             echo $this->escape($start);
             if ($s['fromRev'] !== $s['toRev']) echo ' – ' . $this->escape($end);
           ?>
