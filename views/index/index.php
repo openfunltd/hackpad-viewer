@@ -46,7 +46,7 @@ $oldUrl = $subDomain
     <?php foreach ($this->pads as $pad): ?>
       <?php $preview = $this->previews[$pad['localPadId']] ?? ''; ?>
       <li class="pad-list-item">
-        <a class="pad-list-title" href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'])) ?>">
+        <a class="pad-list-title" href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'] ?? '')) ?>">
           <?= $this->escape($pad['title'] ?: $pad['localPadId']) ?>
         </a>
         <div class="pad-list-meta">

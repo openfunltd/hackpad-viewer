@@ -16,7 +16,7 @@ $displayName = $this->member['fullName'] ?: $this->member['email'];
   <ul class="pad-list">
     <?php foreach ($this->pads as $pad): ?>
       <li class="pad-list-item">
-        <a class="pad-list-title" href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'])) ?>">
+        <a class="pad-list-title" href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'] ?? '')) ?>">
           <?= $this->escape($pad['title'] ?: $pad['localPadId']) ?>
         </a>
         <div class="pad-list-meta">

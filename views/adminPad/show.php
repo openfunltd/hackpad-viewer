@@ -47,7 +47,7 @@ $this->yield_start('content');
         </a>
       </td>
       <td class="pad-title-col">
-        <a href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'])) ?>" target="_blank">
+        <a href="<?= $this->escape(HackpadHelper::padUrl($pad['localPadId'], $pad['title'] ?? '')) ?>" target="_blank">
           <?= $this->escape($pad['title'] ?: '（無標題）') ?>
         </a>
       </td>
