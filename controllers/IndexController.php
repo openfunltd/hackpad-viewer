@@ -67,6 +67,11 @@ class IndexController extends MiniEngine_Controller
             $excludeFilter .= ' AND pm.creatorId NOT IN (' . implode(',', array_fill(0, count($spamAccountIds), '?')) . ')';
             $excludeParams = array_merge($excludeParams, $spamAccountIds);
         }
+        $cutoff = HackpadHelper::getWorkspaceCutoff($domain['subDomain']);
+        if ($cutoff !== null) {
+            $excludeFilter .= ' AND pm.createdDate <= ?';
+            $excludeParams[] = $cutoff;
+        }
 
         $page   = max(1, (int)($_GET['page'] ?? 1));
         $offset = ($page - 1) * self::PER_PAGE;

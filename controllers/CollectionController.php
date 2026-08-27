@@ -46,6 +46,11 @@ class CollectionController extends MiniEngine_Controller
             $excludeFilter .= ' AND pm.creatorId NOT IN (' . implode(',', array_fill(0, count($spamAccountIds), '?')) . ')';
             $excludeParams = array_merge($excludeParams, $spamAccountIds);
         }
+        $cutoff = HackpadHelper::getWorkspaceCutoff($domain['subDomain']);
+        if ($cutoff !== null) {
+            $excludeFilter .= ' AND pm.createdDate <= ?';
+            $excludeParams[] = $cutoff;
+        }
 
         $stmt = $db->prepare(
             "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy, ps.headRev,

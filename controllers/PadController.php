@@ -54,7 +54,8 @@ class PadController extends MiniEngine_Controller
             return $this->notfound('Pad not found.');
         }
 
-        if (HackpadHelper::isSpamAccount($domain['subDomain'], (int) $padMeta['creatorId'])) {
+        if (HackpadHelper::isSpamAccount($domain['subDomain'], (int) $padMeta['creatorId'])
+            || HackpadHelper::isPastCutoff($domain['subDomain'], $padMeta['createdDate'])) {
             return $this->notfound('Pad not found.');
         }
 
@@ -98,13 +99,14 @@ class PadController extends MiniEngine_Controller
 
         $db   = MiniEngine::getDb();
         $stmt = $db->prepare(
-            'SELECT localPadId, title, creatorId FROM pro_padmeta WHERE domainId = ? AND localPadId = ? AND isDeleted = 0'
+            'SELECT localPadId, title, creatorId, createdDate FROM pro_padmeta WHERE domainId = ? AND localPadId = ? AND isDeleted = 0'
         );
         $stmt->execute([$domainId, $localPadId]);
         $padMeta = $stmt->fetch(PDO::FETCH_ASSOC);
         if (!$padMeta) return $this->notfound('Pad not found.');
 
-        if (HackpadHelper::isSpamAccount($domain['subDomain'], (int) $padMeta['creatorId'])) {
+        if (HackpadHelper::isSpamAccount($domain['subDomain'], (int) $padMeta['creatorId'])
+            || HackpadHelper::isPastCutoff($domain['subDomain'], $padMeta['createdDate'])) {
             return $this->notfound('Pad not found.');
         }
 

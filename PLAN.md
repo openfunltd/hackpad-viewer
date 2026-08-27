@@ -286,22 +286,38 @@ hackpad-viewer/
 
 ---
 
-## Spam 下架機制（takedown.csv）
+## Spam 下架機制
 
-因資料庫已改為唯讀，無法直接在 DB 標記 spam 文章為 deleted。改用專案根目錄的
-`takedown.csv`（不進 git 追蹤與否皆可，目前有進 git）記錄需要下架的文章：
+因資料庫已改為唯讀，無法直接在 DB 標記 spam 文章為 deleted。改用三個專案根目錄的 CSV 檔案（皆有進 git），依 spam 規模由小到大選用：
 
+### 1. `takedown.csv` — 單篇下架（一次性 / 特例）
 ```csv
 subdomain,localPadId,note
 moztw,8wN3m91taCj,"spam: Robinhood customer service"
 ```
+適合零星、與帳號歷史無關的個別文章（例如帳號本身正常但被盜用發一篇廣告文）。
 
-- `HackpadHelper::isTakendown($subdomain, $localPadId)` / `getTakedownPadIds($subdomain)` 讀取並快取此檔案
-- `PadController`：文章頁 / 歷史頁遇到 takedown 文章一律回傳 404
-- `IndexController` / `CollectionController`：列表查詢加上 `NOT IN` 排除，不會出現在列表中
-- `SearchController`：Elasticsearch 查詢加上 `must_not` 排除（ES 索引本身未清除，只是查詢時過濾）
+### 2. `spam_accounts.csv` — 帳號黑名單（整個帳號都是 spam）
+```csv
+subdomain,creatorId,note
+moztw,42212,"spam account (1638 pads) - manually verified"
+```
+大部分 spam 是「拋棄式帳號整批發文」，逐篇列 padId 會讓清單暴增到幾千行（NOT IN 子句、CSV 解析都會變慢）。改成封鎖 `creatorId`：規模小兩個數量級、O(1) hash 查詢。moztw 目前 805 個帳號、涵蓋 7,190 篇文章（56% 的內容）。**不要**把 email 寫進 note（repo 是 public，避免不必要的 PII 外流）。
 
-要下架新文章：從網址取得 subdomain 與最後 11 碼 localPadId，加一行到 `takedown.csv` 即可，不需改資料庫、不需重啟服務。
+### 3. `workspace_cutoff.csv` — 依日期整批下架（單一 workspace 已死、之後全是灌水）
+```csv
+subdomain,cutoffDate,note
+moztw,2019-09-04 23:59:59,"最後一篇真實社群發文之後 8 個月完全沒人用，2020-05 起被 spam bot 佔領，之後再也沒有真人活動"
+```
+當一個 workspace 的社群活動已經完全停止、之後的內容幾乎全是分散、主題各異的一次性代寫 SEO 垃圾文（無法用關鍵字分類）時，直接設定「最後一篇真實內容」的日期，之後全部視為不存在。因為 DB 是唯讀、不會再有新的合法內容產生，這個設定是一次性且低風險的。**每個 workspace 各自獨立設定**（例如 g0v 的 spam 沒那麼嚴重，不需要設 cutoff）。
+
+### 共用機制
+- `HackpadHelper`：`isTakendown()` / `isSpamAccount()` / `isPastCutoff()`（皆為 O(1) hash 查詢或字串比較，各自搭配 `getTakedownPadIds()` / `getSpamAccountIds()` / `getWorkspaceCutoff()`）
+- `PadController`：文章頁 / 歷史頁三個條件任一命中就回傳 404
+- `IndexController` / `CollectionController`：列表查詢加上對應的 `NOT IN` / `<=` 排除條件
+- `SearchController`：`creatorId` 是 ES 裡的 `integer` 欄位可以用 `must_not` 可靠過濾；但 `id`（globalPadId）是 analyzed text，過濾不可靠，另外 ES 也沒有索引 `createdDate`，所以 takedown.csv 與 cutoff 這兩項改成在取得當頁結果後，用一次針對當頁 localPadId 的小型 DB 查詢核對，命中的話把 title/摘要蓋成 `[deleted]`（保留在結果列表中，不影響分頁計數）
+
+要下架新文章：依規模選對的檔案加一行即可，不需改資料庫、不需重啟服務。
 
 ---
 

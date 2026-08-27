@@ -90,6 +90,24 @@ class SearchController extends MiniEngine_Controller
         $total = $result->hits->total->value ?? $result->hits->total ?? 0;
         $hits  = [];
 
+        // ES doesn't index createdDate, so cutoff-based masking needs one small
+        // lookup for just this page's results (at most PER_PAGE rows).
+        $pageLocalPadIds = [];
+        foreach ($result->hits->hits as $h) {
+            $pageLocalPadIds[] = substr($h->_source->id, strpos($h->_source->id, '$') + 1);
+        }
+        $createdDates = [];
+        $cutoff = HackpadHelper::getWorkspaceCutoff($domain['subDomain']);
+        if ($cutoff !== null && $pageLocalPadIds) {
+            $db  = MiniEngine::getDb();
+            $ph  = implode(',', array_fill(0, count($pageLocalPadIds), '?'));
+            $stmt = $db->prepare("SELECT localPadId, createdDate FROM pro_padmeta WHERE domainId = ? AND localPadId IN ($ph)");
+            $stmt->execute(array_merge([$domainId], $pageLocalPadIds));
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $r) {
+                $createdDates[$r['localPadId']] = $r['createdDate'];
+            }
+        }
+
         foreach ($result->hits->hits as $h) {
             $src        = $h->_source;
             $globalId   = $src->id;
@@ -105,7 +123,8 @@ class SearchController extends MiniEngine_Controller
             // takendown spam pads here instead of trying to filter them out
             // of the search query (their `id` field isn't a keyword field,
             // so exact-match filtering on it doesn't work reliably).
-            if (HackpadHelper::isTakendown($domain['subDomain'], $localPadId)) {
+            $isPastCutoff = HackpadHelper::isPastCutoff($domain['subDomain'], $createdDates[$localPadId] ?? null);
+            if (HackpadHelper::isTakendown($domain['subDomain'], $localPadId) || $isPastCutoff) {
                 $title   = '[deleted]';
                 $hlTitle = null;
                 $hlBody  = '[deleted]';

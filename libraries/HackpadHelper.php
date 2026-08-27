@@ -421,4 +421,54 @@ class HackpadHelper
     {
         return isset(self::loadSpamAccountList()[$subdomain][$creatorId]);
     }
+
+    /**
+     * Load /workspace_cutoff.csv (subdomain,cutoffDate,note) into memory.
+     * Some workspaces went completely silent for real users and were later
+     * flooded by spam bots with no legitimate activity mixed back in; for
+     * those, everything created after the last real post can be treated as
+     * spam by default instead of chasing every account individually. Since
+     * the source DB is read-only, no genuine new content can ever appear
+     * after a cutoff, so this is a one-time, low-risk decision per domain.
+     * Returns [subdomain => cutoffDateString].
+     */
+    private static function loadWorkspaceCutoffs(): array
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $cache = [];
+        $path  = __DIR__ . '/../workspace_cutoff.csv';
+        if (is_readable($path)) {
+            $fh = fopen($path, 'r');
+            fgetcsv($fh); // header row
+            while (($row = fgetcsv($fh)) !== false) {
+                if (count($row) < 2 || $row[0] === '') continue;
+                $subdomain = trim($row[0]);
+                $cutoff    = trim($row[1]);
+                if ($cutoff === '') continue;
+                $cache[$subdomain] = $cutoff;
+            }
+            fclose($fh);
+        }
+        return $cache;
+    }
+
+    /**
+     * Get the configured cutoff datetime string for a subdomain, or null if none.
+     */
+    public static function getWorkspaceCutoff(string $subdomain): ?string
+    {
+        return self::loadWorkspaceCutoffs()[$subdomain] ?? null;
+    }
+
+    /**
+     * Check whether a pad's createdDate is after its workspace's configured cutoff.
+     */
+    public static function isPastCutoff(string $subdomain, ?string $createdDate): bool
+    {
+        $cutoff = self::getWorkspaceCutoff($subdomain);
+        if ($cutoff === null || !$createdDate) return false;
+        return strtotime($createdDate) > strtotime($cutoff);
+    }
 }
