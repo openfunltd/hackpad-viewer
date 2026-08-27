@@ -55,6 +55,14 @@ class IndexController extends MiniEngine_Controller
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
         $creatorFilter = $filterByCreator ? " AND pm.creatorId = $creatorId" : '';
 
+        $takedownIds     = HackpadHelper::getTakedownPadIds($domain['subDomain']);
+        $takedownFilter  = '';
+        $takedownParams  = [];
+        if ($takedownIds) {
+            $takedownFilter = ' AND pm.localPadId NOT IN (' . implode(',', array_fill(0, count($takedownIds), '?')) . ')';
+            $takedownParams = $takedownIds;
+        }
+
         $page   = max(1, (int)($_GET['page'] ?? 1));
         $offset = ($page - 1) * self::PER_PAGE;
 
@@ -62,9 +70,9 @@ class IndexController extends MiniEngine_Controller
             "SELECT COUNT(*) FROM pro_padmeta pm
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
-               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}"
+               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}{$takedownFilter}"
         );
-        $stmt->execute([$domainId]);
+        $stmt->execute(array_merge([$domainId], $takedownParams));
         $total = (int) $stmt->fetchColumn();
 
         $stmt = $db->prepare(
@@ -75,11 +83,11 @@ class IndexController extends MiniEngine_Controller
              JOIN PAD_SQLMETA ps ON ps.id = CONCAT(pm.domainId, '\$', pm.localPadId)
              LEFT JOIN pro_accounts pa ON pa.id = pm.creatorId AND pa.isDeleted = 0
              WHERE pm.domainId = ? AND pm.isDeleted = 0 AND pm.isArchived = 0
-               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}
+               AND ps.headRev > 0 AND ps.guestPolicy IN {$guestPolicies}{$creatorFilter}{$takedownFilter}
              ORDER BY pm.lastEditedDate DESC
              LIMIT " . self::PER_PAGE . " OFFSET " . $offset
         );
-        $stmt->execute([$domainId]);
+        $stmt->execute(array_merge([$domainId], $takedownParams));
 
         $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->view->pads            = $pads;

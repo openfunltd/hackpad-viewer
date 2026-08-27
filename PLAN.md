@@ -286,6 +286,25 @@ hackpad-viewer/
 
 ---
 
+## Spam 下架機制（takedown.csv）
+
+因資料庫已改為唯讀，無法直接在 DB 標記 spam 文章為 deleted。改用專案根目錄的
+`takedown.csv`（不進 git 追蹤與否皆可，目前有進 git）記錄需要下架的文章：
+
+```csv
+subdomain,localPadId,note
+moztw,8wN3m91taCj,"spam: Robinhood customer service"
+```
+
+- `HackpadHelper::isTakendown($subdomain, $localPadId)` / `getTakedownPadIds($subdomain)` 讀取並快取此檔案
+- `PadController`：文章頁 / 歷史頁遇到 takedown 文章一律回傳 404
+- `IndexController` / `CollectionController`：列表查詢加上 `NOT IN` 排除，不會出現在列表中
+- `SearchController`：Elasticsearch 查詢加上 `must_not` 排除（ES 索引本身未清除，只是查詢時過濾）
+
+要下架新文章：從網址取得 subdomain 與最後 11 碼 localPadId，加一行到 `takedown.csv` 即可，不需改資料庫、不需重啟服務。
+
+---
+
 ## 注意事項
 
 - **PHP 版本需求**：PHP 8.0+（使用 union types `string|false`、named arguments 等）；原機器只有 PHP 7.3，需在 PHP 8.3 的新機器繼續開發

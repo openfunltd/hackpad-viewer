@@ -34,6 +34,14 @@ class CollectionController extends MiniEngine_Controller
         $user = $this->view->user;
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
 
+        $takedownIds    = HackpadHelper::getTakedownPadIds($domain['subDomain']);
+        $takedownFilter = '';
+        $takedownParams = [];
+        if ($takedownIds) {
+            $takedownFilter = ' AND pm.localPadId NOT IN (' . implode(',', array_fill(0, count($takedownIds), '?')) . ')';
+            $takedownParams = $takedownIds;
+        }
+
         $stmt = $db->prepare(
             "SELECT DISTINCT pm.localPadId, pm.title, pm.lastEditedDate, ps.guestPolicy, ps.headRev,
                     pa.fullName AS creatorName
@@ -44,10 +52,10 @@ class CollectionController extends MiniEngine_Controller
              JOIN PAD_SQLMETA ps ON ps.id = pac.globalPadId
              LEFT JOIN pro_accounts pa ON pa.id = pm.creatorId AND pa.isDeleted = 0
              WHERE pac.groupId = ? AND pac.isRevoked = 0
-               AND ps.guestPolicy IN {$guestPolicies}
+               AND ps.guestPolicy IN {$guestPolicies}{$takedownFilter}
              ORDER BY pm.lastEditedDate DESC"
         );
-        $stmt->execute([$domainId, $groupId]);
+        $stmt->execute(array_merge([$domainId, $groupId], $takedownParams));
 
         $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->view->collection = $collection;

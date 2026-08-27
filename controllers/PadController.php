@@ -24,6 +24,10 @@ class PadController extends MiniEngine_Controller
         $domainId   = (int) $domain['id'];
         $localPadId = HackpadHelper::extractPadId($padSlug);
 
+        if (HackpadHelper::isTakendown($domain['subDomain'], $localPadId)) {
+            return $this->notfound('Pad not found.');
+        }
+
         $globalPadId = $domainId . '$' . $localPadId;
 
         // Check access
@@ -74,6 +78,11 @@ class PadController extends MiniEngine_Controller
 
         $domainId    = (int) $domain['id'];
         $localPadId  = HackpadHelper::extractPadId($padSlug);
+
+        if (HackpadHelper::isTakendown($domain['subDomain'], $localPadId)) {
+            return $this->notfound('Pad not found.');
+        }
+
         $globalPadId = $domainId . '$' . $localPadId;
 
         if (!HackpadHelper::canReadPad($globalPadId, $domainId)) {

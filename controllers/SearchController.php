@@ -37,6 +37,11 @@ class SearchController extends MiniEngine_Controller
         // Allowed guestpolicies based on login state
         $policies = $isLoggedIn ? ['allow', 'link', 'domain'] : ['allow', 'link'];
 
+        $takedownGlobalIds = array_map(
+            fn($localPadId) => $domainId . '$' . $localPadId,
+            HackpadHelper::getTakedownPadIds($domain['subDomain'])
+        );
+
         $esQuery = [
             'from' => $from,
             'size' => self::PER_PAGE,
@@ -54,6 +59,9 @@ class SearchController extends MiniEngine_Controller
                         ['terms' => ['guestpolicy' => $policies]],
                         ['term'  => ['deleted' => false]],
                     ],
+                    'must_not' => $takedownGlobalIds
+                        ? [['terms' => ['id' => $takedownGlobalIds]]]
+                        : [],
                 ],
             ],
             'highlight' => [

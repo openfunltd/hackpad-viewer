@@ -332,4 +332,47 @@ class HackpadHelper
         $stmt->execute([$globalPadId]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    /**
+     * Load /takedown.csv (subdomain,localPadId,note) into memory.
+     * This lets us hide/404 spam pads without writing to the read-only
+     * hackpad MySQL database. Returns [subdomain => [localPadId, ...]].
+     */
+    private static function loadTakedownList(): array
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $cache = [];
+        $path  = __DIR__ . '/../takedown.csv';
+        if (is_readable($path)) {
+            $fh = fopen($path, 'r');
+            fgetcsv($fh); // header row
+            while (($row = fgetcsv($fh)) !== false) {
+                if (count($row) < 2 || $row[0] === '') continue;
+                $subdomain  = trim($row[0]);
+                $localPadId = trim($row[1]);
+                if ($localPadId === '') continue;
+                $cache[$subdomain][] = $localPadId;
+            }
+            fclose($fh);
+        }
+        return $cache;
+    }
+
+    /**
+     * Get the list of takendown localPadIds for a given subdomain (workspace).
+     */
+    public static function getTakedownPadIds(string $subdomain): array
+    {
+        return self::loadTakedownList()[$subdomain] ?? [];
+    }
+
+    /**
+     * Check whether a given pad has been listed in takedown.csv.
+     */
+    public static function isTakendown(string $subdomain, string $localPadId): bool
+    {
+        return in_array($localPadId, self::getTakedownPadIds($subdomain), true);
+    }
 }
