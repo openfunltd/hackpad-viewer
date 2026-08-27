@@ -37,10 +37,10 @@ class SearchController extends MiniEngine_Controller
         // Allowed guestpolicies based on login state
         $policies = $isLoggedIn ? ['allow', 'link', 'domain'] : ['allow', 'link'];
 
-        $takedownGlobalIds = array_map(
-            fn($localPadId) => $domainId . '$' . $localPadId,
-            HackpadHelper::getTakedownPadIds($domain['subDomain'])
-        );
+        // creatorId is an integer field in the ES mapping (unlike `id`, which is
+        // analyzed text and can't be exact-matched), so this filter works reliably
+        // and keeps result counts/pagination correct.
+        $spamAccountIds = HackpadHelper::getSpamAccountIds($domain['subDomain']);
 
         $esQuery = [
             'from' => $from,
@@ -59,8 +59,8 @@ class SearchController extends MiniEngine_Controller
                         ['terms' => ['guestpolicy' => $policies]],
                         ['term'  => ['deleted' => false]],
                     ],
-                    'must_not' => $takedownGlobalIds
-                        ? [['terms' => ['id' => $takedownGlobalIds]]]
+                    'must_not' => $spamAccountIds
+                        ? [['terms' => ['creatorId' => $spamAccountIds]]]
                         : [],
                 ],
             ],
@@ -100,6 +100,16 @@ class SearchController extends MiniEngine_Controller
             $hl      = $h->highlight ?? null;
             $hlTitle = $hl->title[0]   ?? null;
             $hlBody  = isset($hl->contents) ? implode(' … ', (array)$hl->contents) : null;
+
+            // The ES index can't be updated (read-only backing DB), so mask
+            // takendown spam pads here instead of trying to filter them out
+            // of the search query (their `id` field isn't a keyword field,
+            // so exact-match filtering on it doesn't work reliably).
+            if (HackpadHelper::isTakendown($domain['subDomain'], $localPadId)) {
+                $title   = '[deleted]';
+                $hlTitle = null;
+                $hlBody  = '[deleted]';
+            }
 
             $hits[] = [
                 'localPadId' => $localPadId,

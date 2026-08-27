@@ -335,8 +335,9 @@ class HackpadHelper
 
     /**
      * Load /takedown.csv (subdomain,localPadId,note) into memory.
-     * This lets us hide/404 spam pads without writing to the read-only
-     * hackpad MySQL database. Returns [subdomain => [localPadId, ...]].
+     * This lets us hide/404 individual spam pads without writing to the
+     * read-only hackpad MySQL database.
+     * Returns [subdomain => [localPadId => true, ...]] (hash set, O(1) lookup).
      */
     private static function loadTakedownList(): array
     {
@@ -353,7 +354,7 @@ class HackpadHelper
                 $subdomain  = trim($row[0]);
                 $localPadId = trim($row[1]);
                 if ($localPadId === '') continue;
-                $cache[$subdomain][] = $localPadId;
+                $cache[$subdomain][$localPadId] = true;
             }
             fclose($fh);
         }
@@ -365,7 +366,7 @@ class HackpadHelper
      */
     public static function getTakedownPadIds(string $subdomain): array
     {
-        return self::loadTakedownList()[$subdomain] ?? [];
+        return array_keys(self::loadTakedownList()[$subdomain] ?? []);
     }
 
     /**
@@ -373,6 +374,51 @@ class HackpadHelper
      */
     public static function isTakendown(string $subdomain, string $localPadId): bool
     {
-        return in_array($localPadId, self::getTakedownPadIds($subdomain), true);
+        return isset(self::loadTakedownList()[$subdomain][$localPadId]);
+    }
+
+    /**
+     * Load /spam_accounts.csv (subdomain,creatorId,email,note) into memory.
+     * Bulk spam accounts post dozens to thousands of spam pads each; blocking
+     * by creatorId keeps the blocklist (and the SQL NOT IN filters built from
+     * it) small even when the number of spam *pads* is huge.
+     * Returns [subdomain => [creatorId => true, ...]] (hash set, O(1) lookup).
+     */
+    private static function loadSpamAccountList(): array
+    {
+        static $cache = null;
+        if ($cache !== null) return $cache;
+
+        $cache = [];
+        $path  = __DIR__ . '/../spam_accounts.csv';
+        if (is_readable($path)) {
+            $fh = fopen($path, 'r');
+            fgetcsv($fh); // header row
+            while (($row = fgetcsv($fh)) !== false) {
+                if (count($row) < 2 || $row[0] === '') continue;
+                $subdomain = trim($row[0]);
+                $creatorId = (int) trim($row[1]);
+                if ($creatorId <= 0) continue;
+                $cache[$subdomain][$creatorId] = true;
+            }
+            fclose($fh);
+        }
+        return $cache;
+    }
+
+    /**
+     * Get the list of spam account creatorIds for a given subdomain (workspace).
+     */
+    public static function getSpamAccountIds(string $subdomain): array
+    {
+        return array_keys(self::loadSpamAccountList()[$subdomain] ?? []);
+    }
+
+    /**
+     * Check whether a given creatorId is a known bulk-spam account.
+     */
+    public static function isSpamAccount(string $subdomain, int $creatorId): bool
+    {
+        return isset(self::loadSpamAccountList()[$subdomain][$creatorId]);
     }
 }

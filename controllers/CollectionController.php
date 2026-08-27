@@ -35,11 +35,16 @@ class CollectionController extends MiniEngine_Controller
         $guestPolicies = $user ? "('allow','link','domain')" : "('allow','link')";
 
         $takedownIds    = HackpadHelper::getTakedownPadIds($domain['subDomain']);
-        $takedownFilter = '';
-        $takedownParams = [];
+        $spamAccountIds = HackpadHelper::getSpamAccountIds($domain['subDomain']);
+        $excludeFilter  = '';
+        $excludeParams  = [];
         if ($takedownIds) {
-            $takedownFilter = ' AND pm.localPadId NOT IN (' . implode(',', array_fill(0, count($takedownIds), '?')) . ')';
-            $takedownParams = $takedownIds;
+            $excludeFilter .= ' AND pm.localPadId NOT IN (' . implode(',', array_fill(0, count($takedownIds), '?')) . ')';
+            $excludeParams = array_merge($excludeParams, $takedownIds);
+        }
+        if ($spamAccountIds) {
+            $excludeFilter .= ' AND pm.creatorId NOT IN (' . implode(',', array_fill(0, count($spamAccountIds), '?')) . ')';
+            $excludeParams = array_merge($excludeParams, $spamAccountIds);
         }
 
         $stmt = $db->prepare(
@@ -52,10 +57,10 @@ class CollectionController extends MiniEngine_Controller
              JOIN PAD_SQLMETA ps ON ps.id = pac.globalPadId
              LEFT JOIN pro_accounts pa ON pa.id = pm.creatorId AND pa.isDeleted = 0
              WHERE pac.groupId = ? AND pac.isRevoked = 0
-               AND ps.guestPolicy IN {$guestPolicies}{$takedownFilter}
+               AND ps.guestPolicy IN {$guestPolicies}{$excludeFilter}
              ORDER BY pm.lastEditedDate DESC"
         );
-        $stmt->execute(array_merge([$domainId, $groupId], $takedownParams));
+        $stmt->execute(array_merge([$domainId, $groupId], $excludeParams));
 
         $pads = $stmt->fetchAll(PDO::FETCH_ASSOC);
         $this->view->collection = $collection;
